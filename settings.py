@@ -1,0 +1,35 @@
+# window size
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
+
+# room size
+ROOM_WIDTH = 800
+ROOM_HEIGHT = 600
+ROOM_DEPTH = 2700
+WALLS_WIDTH = 10
+SCALE = 1
+
+# How many times generate room with furniture objects
+MAIN_ITERATIONS = 5
+
+# COLLISION_PENALTY
+COLLISION_PENALTY = 100_000_000
+
+# controls
+X_OFFSET = (SCREEN_WIDTH - ROOM_WIDTH) // 2
+Y_OFFSET = (SCREEN_HEIGHT - ROOM_HEIGHT) // 2
+DEBUG = True
+S_DEBUG = False
+START_GA = False
+
+# for pygame draw
+DISPLAY_SURFACE, FONT, CLOCK, SCREEN = None, None, None, None
+ALL_OBJECTS, FURNITURE_OBJECTS = list(), list()
+CURRENT_GA_SPRITE = None
+
+# For GA
+MAX_NUM_ITERATION = 2000
+POPULATION_SIZE = 100
+MUTATION_PROBABILITY = 0.40     # default 0.1 = 10%
+ELIT_RATIO = 0.50               # default 0.01 = 1%
+PARENTS_PORTION = 0.60          # default 0.30 = 30%
