@@ -10,7 +10,7 @@ class Furniture(SpriteObject):
     active = False
     show_distances = False
 
-    rules_to_all_furniture = {room_parts.Door: {"sides": ("any", "bottom", ">140"), "angle": "any", "required": True},
+    rules_to_all_furniture = {room_parts.Door: {"sides": ("any", "bottom", ">110"), "angle": "any", "required": True},
                               room_parts.Window: {"sides": ("any", "bottom", ">60"), "angle": "any", "required": True}}  # TODO: для двери сделать пермещение вниз на целое число и влево на половину этого числа ( если петли стоят слева и дверь вдруг открывется на все 180 градусов)
 
     def __init__(self, *args):
@@ -62,7 +62,7 @@ class Furniture(SpriteObject):
                 # check for depth collisions
                 acceptable_diff = (self.depth + sprite.depth) // 2
                 current_diff = abs(self.z - sprite.z)
-                if current_diff > acceptable_diff:
+                if current_diff >= acceptable_diff:
                     # print("No depth intersection")
                     return False  # exit without intersection
                 else:
@@ -247,11 +247,13 @@ class Furniture(SpriteObject):
 
                 fitness = (distance_diff + angle_diff) * affinity
                 if rule_required:  # Always immediately add it if required
-                    fit_sum += fitness
+                    fit_sum += fitness * 100  # TODO: ???
                     # print("req:", fitness)
                 else:  # Add it to optional rules
                     optional_rules_fitness.append(fitness)
 
                 # fit_sum += fitness
                 # fit_sum += angle_diff
-        return fit_sum + min(optional_rules_fitness)  # sum of all required rules + minimum of optional rules
+        if optional_rules_fitness:  # sum of all required rules + minimum of optional rules
+            fit_sum += min(optional_rules_fitness)
+        return fit_sum

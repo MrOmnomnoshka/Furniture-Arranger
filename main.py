@@ -9,31 +9,32 @@ import room_rules
 
 
 def generate_room_parameters(room_size, accuracy=2):
-    # accuracy = 2  # how many decimal places to round to
-    multiplier = 10 ** accuracy
-    # from 2m to half of a room size
-    width = randrange(2 * multiplier, room_size // 2.5 * multiplier) / multiplier
+    multiplier = 10 ** accuracy  # accuracy = 2  # how many decimal places to round to
+    min_size = 3  # from 2.5m
+    max_size = room_size // 2.5  # to half of a room size
+    width = randrange(min_size * multiplier, max_size * multiplier) / multiplier
     height = round(room_size/width, accuracy)
-    return width*100, height*100  #, depth=250?
+    return int(width*100), int(height*100)  # , depth=250?
 
 
-def generate_object_in_walls(obj, size, walls):
+def generate_object_in_walls(obj, width, walls):
     from random import choice, randrange
     from pygame.math import Vector2
     wall = choice(walls)
-    fit_in_wall = wall.width - size - wall.height * 2
+    fit_in_wall = wall.width - width - wall.height * 2
     attempts = 100
     while fit_in_wall <= 0:  # It can't fit in the wall
         wall = choice(walls)
-        fit_in_wall = wall.width - size - wall.height * 2
+        fit_in_wall = wall.width - width - wall.height * 2
 
         attempts -= 1
         if attempts == 0:
             raise Exception("Can't fit in any wall")
 
     side = wall.convert_self_side("midleft")
-    pos_vec = Vector2(randrange(fit_in_wall) + size // 2 + wall.height, 0).rotate(-wall.angle)
-    new_obj = obj(size, wall.height, settings.ROOM_DEPTH, wall.angle, side.x + pos_vec.x, side.y + pos_vec.y)
+    pos_vec = Vector2(randrange(fit_in_wall) + width // 2 + wall.height, 0).rotate(-wall.angle)
+    new_obj = obj(width, wall.height, settings.ROOM_DEPTH, wall.angle, side.x + pos_vec.x, side.y + pos_vec.y,
+                  settings.ROOM_DEPTH)  # Make it the highest from render order
     return new_obj
 
 
@@ -118,9 +119,11 @@ def generate_furniture():
 
     # ==================== FURNITURE ====================
     # args: width, height, depth, angle, x, y, z
+
     # generate tv # 65"(144x81x15cm)    55"(122x69x10cm)
     furniture_obj.append(TV(144, 15, 81, 0, 650, 15, 120))
 
+    """
     # generate sofa # 180x86x87
     furniture_obj.append(Sofa(180, 86, 87, 180, 650, 273))
 
@@ -133,7 +136,6 @@ def generate_furniture():
     # generate big carpet # 128x88
     furniture_obj.append(CarpetBig(230, 160, 0, 180, 650, 180))
 
-    """
     # generate Computer table # 136x60
     furniture_obj.append(ComputerTable(136, 60, 180, 150, 560))
 
@@ -168,7 +170,7 @@ def generate_furniture():
 def main():
     # debug_func()
     # room_size_sqm = float(input("Enter room size in sq meters: "))
-    room_size_sqm = 24
+    room_size_sqm = 24.9  # 24
 
     for amount in range(settings.MAIN_ITERATIONS):
         w, h = generate_room_parameters(room_size_sqm)
@@ -179,11 +181,13 @@ def main():
         start_time = time()
 
         # furniture_obj = generate_furniture()
-        furniture_obj = room_rules.get_bedroom_guest_17__24_9m()
+        # furniture_obj = room_rules.get_bedroom_guest_17__24_9m()
+        furniture_obj = room_rules.get_bedroom_master_17__24_9m()
 
         rooms_obj = generate_room()
         settings.ALL_OBJECTS = rooms_obj
         settings.FURNITURE_OBJECTS = list()
+        settings.SPRITE_ORDER = list()
 
         for i, f_obj in enumerate(furniture_obj):
             obj_str = f" Now running: '{f_obj.__class__.__name__.upper()}' ({i+1}/{len(furniture_obj)}) "

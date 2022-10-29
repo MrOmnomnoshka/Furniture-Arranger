@@ -97,6 +97,8 @@ def event_handling():
                 get_hovered_sprite_fitness()
             elif event.key == pygame.K_s:
                 settings.S_DEBUG = not settings.S_DEBUG
+            elif event.key == pygame.K_n:
+                settings.DEBUG_EVERY_N = not settings.DEBUG_EVERY_N
             elif event.key == pygame.K_SPACE:
                 change_hovered_sprite_attr("active")
             elif event.key == pygame.K_l:
@@ -116,16 +118,20 @@ def event_handling():
     return done
 
 
-def draw_all():
+def draw_all(data=None, draw_bg=True):
     font, camera_display, all_sprites, clock, screen = settings.FONT, settings.DISPLAY_SURFACE, settings.ALL_OBJECTS, \
                                                        settings.CLOCK, settings.SCREEN
 
-    screen.fill(white_dark)
-    # screen.fill(white)
+    if draw_bg:
+        screen.fill(white_dark)
+        # screen.fill(white)
+        camera_display.fill(white_dark)
 
-    camera_display.fill(white_dark)
+    if not settings.SPRITE_ORDER or len(settings.SPRITE_ORDER) != len(all_sprites):
+        # sort sprties by z value
+        settings.SPRITE_ORDER = sorted(all_sprites, key=lambda s: s.z)
 
-    for sprite in all_sprites[::-1]:  # draw from back to front
+    for sprite in settings.SPRITE_ORDER:  # draw from back to front
         sprite.update()
         sprite.draw(camera_display)
 
@@ -207,6 +213,46 @@ def draw_all():
 
     # Draws the surface object to the screen.
     pygame.display.update()
+
+
+def draw_every_generation(data):
+    if settings.DEBUG_EVERY_N:
+        if not pygame.get_init():
+            init_pygame("draw_every_generation")
+            settings.SCREEN.fill(white_dark)
+            # screen.fill(white)
+            settings.DISPLAY_SURFACE.fill(white_dark)
+
+        # =======  Left down corner info =======
+        # show current generation
+        generation = settings.FONT.render("generation: " + str(data["current_generation"]), True, magenta)
+        settings.SCREEN.blit(generation, (10, settings.SCREEN_HEIGHT - 60))
+
+        # show last data value
+        last_data = settings.FONT.render("fitness: " + str(data["report_list"][-1]), True, magenta)
+        settings.SCREEN.blit(last_data, (10, settings.SCREEN_HEIGHT - 30))
+
+        from GA_furniture import set_sprite_values
+        for obj_data in data.last_generation.variables:
+            set_sprite_values(obj_data)
+            # draw_all(data, False)
+            settings.CURRENT_GA_SPRITE.draw(settings.DISPLAY_SURFACE)
+            settings.SCREEN.blit(pygame.transform.scale(
+                settings.DISPLAY_SURFACE,  # Screen with camera data
+                (settings.SCREEN_WIDTH * settings.SCALE, settings.SCREEN_HEIGHT * settings.SCALE)),  # Zoom screen
+                (settings.X_OFFSET, settings.Y_OFFSET))  # Move screen
+
+        draw_all(data, False)
+        settings.SCREEN.fill(white_dark)
+        settings.DISPLAY_SURFACE.fill(white_dark)
+
+        settings.CLOCK.tick(60)
+
+        # draw_all()  # JUST fill white color?
+    if pygame.get_init():
+        event_handling()
+
+    return data
 
 
 def draw_loop(frame_name):

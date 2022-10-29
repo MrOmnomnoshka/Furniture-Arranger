@@ -58,9 +58,11 @@ class SpriteObject(pygame.sprite.Sprite):
         self.update_image()
 
     def update_image(self):
-        self.image = pygame.transform.rotate(self.original_image, self.angle)
-        self.rect = self.image.get_rect(center=self.rect.center)
-        # self.mask = pygame.mask.from_surface(self.image)  # IF MASK NEEDED - TURN ON
+        if self.old_angle != self.angle:
+            self.image = pygame.transform.rotate(self.original_image, self.angle)
+            self.old_angle = self.angle
+            self.rect = self.image.get_rect(center=self.rect.center)
+            # self.mask = pygame.mask.from_surface(self.image)  # IF MASK NEEDED - TURN ON
 
     def reload_image(self):
         if hasattr(self, "image_path"):  # Has Image

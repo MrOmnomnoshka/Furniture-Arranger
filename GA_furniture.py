@@ -1,4 +1,5 @@
 from geneticalgorithm2 import geneticalgorithm2 as ga
+from geneticalgorithm2 import ActionConditions, MiddleCallbacks
 import settings
 import os
 
@@ -23,24 +24,7 @@ def get_current_fitness(data):
     # for sprite in settings.FURNITURE_SPRITES:
     #     fit_sum += sprite.get_fitness()
 
-    # draw_loop((fit_sum, data))
-
-    # # record screen as png files (TODO: add -elite counting)
-    # if settings.COUNTER % settings.POPULATION_SIZE == 0:
-    #     # display_surface, font, clock = init_pygame((fit_sum, data))
-    #     # draw_all(font, display_surface, settings.ALL_SPRITES, clock)
-    #     draw_all(settings.FONT, settings.DISPLAY_SURFACE, settings.ALL_SPRITES, settings.CLOCK)
-    #
-    #     fps = settings.FONT.render(f"{fit_sum}, {data}", True, magenta)
-    #     settings.DISPLAY_SURFACE.blit(fps, (10, settings.ROOM_HEIGHT - 30))
-    #     pygame.display.update()
-    #
-    #     number = len(os.listdir("video"))
-    #     pygame.image.save(settings.DISPLAY_SURFACE, f"video/test_{settings.COUNTER}_{number}.png")
-    #
-    #     # pygame.quit()
-    #     # exit()
-    # settings.COUNTER += 1
+    # pygame.image.save(settings.DISPLAY_SURFACE, f"video/test_{settings.COUNTER}_{number}.png")
 
     return fit_sum
 
@@ -76,7 +60,9 @@ def start_ga():
     # model.run()
     # model.run(no_plot=True)
     # model.run(no_plot=True, stop_when_reached=0.84)
-    model.run(no_plot=True, stop_when_reached=1.1)
+    from draw_engine import draw_every_generation
+    model.run(no_plot=True, stop_when_reached=1.1,
+              middle_callbacks=[MiddleCallbacks.UniversalCallback(draw_every_generation, ActionConditions.Always())])
     # model.run(stop_when_reached=1)
     # model.run(middle_callbacks=[MiddleCallbacks.UniversalCallback(own_action(), ActionConditions.Always())])
 
