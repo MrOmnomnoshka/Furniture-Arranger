@@ -247,8 +247,7 @@ class Furniture(SpriteObject):
 
                 fitness = (distance_diff + angle_diff) * affinity
                 if rule_required:  # Always immediately add it if required
-                    fit_sum += fitness * 100  # TODO: ???
-                    # print("req:", fitness)
+                    fit_sum += fitness
                 else:  # Add it to optional rules
                     optional_rules_fitness.append(fitness)
 

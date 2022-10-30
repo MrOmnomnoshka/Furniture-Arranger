@@ -170,7 +170,7 @@ def generate_furniture():
 def main():
     # debug_func()
     # room_size_sqm = float(input("Enter room size in sq meters: "))
-    room_size_sqm = 24.9  # 24
+    room_size_sqm = 24.9
 
     for amount in range(settings.MAIN_ITERATIONS):
         w, h = generate_room_parameters(room_size_sqm)
@@ -198,8 +198,18 @@ def main():
 
             if settings.START_GA:
                 solution = start_ga()
-                set_sprite_values(solution.variable)
-                print("\nDONE for:", f_obj, "\n")
+
+                if f_obj.optional:
+                    if solution.score > settings.STOP_WHEN_REACHED:
+                        settings.ALL_OBJECTS.remove(f_obj)
+                        settings.FURNITURE_OBJECTS.remove(f_obj)
+                        print("\nCan't place this optional obj:", f_obj, "\n")
+                    else:  # all is OK
+                        set_sprite_values(solution.variable)
+                        print("\nSuccessfully placed:", f_obj, "\n")
+                else:
+                    set_sprite_values(solution.variable)
+                    print("\nSuccessfully placed:", f_obj, "\n")
 
             #  ########draw_loop(f"Want to replace smth? {amount + 1}/{settings.MAIN_ITERATIONS}")
 

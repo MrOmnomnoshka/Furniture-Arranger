@@ -41,7 +41,7 @@ class TV(Furniture):
     image_path = "images/furniture/tv.png"
 
     rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0,  "required": True},
-                               DoubleBed: {"sides": ("midbottom", "midbottom", 0), "angle": 180}}
+                               DoubleBed: {"sides": ("midbottom", "midbottom", "any"), "angle": 180}}
 
 
 class Sofa(Furniture):

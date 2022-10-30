@@ -58,13 +58,9 @@ def start_ga():
                algorithm_parameters=algorithm_param)
 
     # model.run()
-    # model.run(no_plot=True)
-    # model.run(no_plot=True, stop_when_reached=0.84)
     from draw_engine import draw_every_generation
-    model.run(no_plot=True, stop_when_reached=1.1,
+    model.run(no_plot=True, stop_when_reached=settings.STOP_WHEN_REACHED,
               middle_callbacks=[MiddleCallbacks.UniversalCallback(draw_every_generation, ActionConditions.Always())])
-    # model.run(stop_when_reached=1)
-    # model.run(middle_callbacks=[MiddleCallbacks.UniversalCallback(own_action(), ActionConditions.Always())])
 
     solution = model.result
     return solution

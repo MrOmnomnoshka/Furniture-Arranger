@@ -17,7 +17,7 @@ class SpriteObject(pygame.sprite.Sprite):
 
     original_image = None  # Every sprite has its own image
 
-    def __init__(self, width, height, depth, angle=0, x=0, y=0, z=0):  # TODO: need x y here or just in 'set_pos'?
+    def __init__(self, width, height, depth, angle=0, x=0, y=0, z=0, optional=False):  # TODO: need xyz here|'set_pos'?
         pygame.sprite.Sprite.__init__(self)
         self.width = width
         self.height = height
@@ -32,6 +32,7 @@ class SpriteObject(pygame.sprite.Sprite):
 
         self.rect_rotated_rules_dict = dict()
         self.z = depth // 2 + z
+        self.optional = optional
         self.update()
 
     def update(self):
@@ -106,37 +107,38 @@ class SpriteObject(pygame.sprite.Sprite):
         self_sides, other_sides = translate_side(self_sides), translate_side(other_sides)
 
         if type(desired_dist_str) == str:  # ">50" or "<50"
-            desired_dist = int(re.findall(r"\d+", desired_dist_str)[0])  # 50
-            desired_sign = desired_dist_str[0]  # >
+            # check if ><= sign in str
+            if re.search(r"[><=]", desired_dist_str):
+                desired_sign = re.search(r"[><=]", desired_dist_str).group()
+                desired_dist = int(desired_dist_str[1:])
 
-            if desired_sign == ">":
-                # if type(other_sprite) == furniture_sprites.FloorLamp:
-                #     print("HERE")
-                other_rect = self.get_other_rect_from_rule(other_sprite, other_sides, desired_dist)
+                if desired_sign == ">":
+                    # if type(other_sprite) == furniture_sprites.FloorLamp:
+                    #     print("HERE")
+                    other_rect = self.get_other_rect_from_rule(other_sprite, other_sides, desired_dist)
 
-                if get_rotated_rect_intersections(self.get_rect_angle(), other_rect):
-                    return settings.COLLISION_PENALTY // 100  # penalty
+                    if get_rotated_rect_intersections(self.get_rect_angle(), other_rect):
+                        return settings.COLLISION_PENALTY // 100  # penalty
+                    else:
+                        return 0
                 else:
+                    print("TODO: add < sign")
                     return 0
-            else:
-                print("TODO: add < sign")
-                return 0
+            elif desired_dist_str == "any":
+                # for any dist on a line/point
+                # TODO: here can be lines, add it like in 'int' bellow
 
-            #     min_dists.append(find_shortest_distance(self.convert_side(self_side), other_side_vec)[0])
-            # min_d = min(min_dists)  # Closest dist from side to side (or point)
-            #
-            # if desired_sign == ">":  # TODO: redo it
-            #     if min_d < desired_dist:
-            #         min_d = desired_dist - min_d
-            #     else:
-            #         min_d = 0
-            # elif desired_sign == "<":
-            #     if min_d > desired_dist:
-            #         min_d = min_d - desired_dist
-            #     else:
-            #         min_d = 0
-            #
-            # return min_d
+                other_side_vec = other_sprite.convert_self_side(other_sides[0])
+                max_dist = max(settings.ROOM_WIDTH, settings.ROOM_HEIGHT)
+                other_side_vec_moved = move_side_to_distance(max_dist, other_sides[0], other_sprite, other_side_vec)
+                line_to_follow = other_side_vec_moved, other_side_vec
+
+                dist = find_shortest_distance(self.convert_self_side(self_sides[0]), line_to_follow)[0]
+
+                return dist
+            else:
+                print("TODO: add other variants")
+                return 0
 
         else:  # type(int) - "50"
             desired_dist = desired_dist_str

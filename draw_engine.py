@@ -194,22 +194,22 @@ def draw_all(data=None, draw_bg=True):
 
     # ======= Left up corner info =======
     # Show FPS
-    fps = font.render(str(int(clock.get_fps())), True, magenta)
-    screen.blit(fps, (2, 2))
+    fps = font.render(f"FPS: {int(clock.get_fps())}", True, magenta)
+    screen.blit(fps, (10, 10))
 
     # Show mouse pos
     pos_off = [p - o for p, o in zip(pygame.mouse.get_pos(), (settings.X_OFFSET, settings.Y_OFFSET))]
-    mouse_pos = font.render(str(pos_off), True, magenta)
-    screen.blit(mouse_pos, (0, 30))
+    mouse_pos = font.render(f"Mouse x,y: {str(pos_off)}", True, magenta)
+    screen.blit(mouse_pos, (10, 40))
 
     # =======  Right up corner info =======
     # show room width
-    room_width = font.render(str(settings.ROOM_WIDTH), True, magenta)
-    screen.blit(room_width, (settings.SCREEN_WIDTH - 80, 2))
+    room_width = font.render("Room width: " + str(settings.ROOM_WIDTH), True, magenta)
+    screen.blit(room_width, (settings.SCREEN_WIDTH - room_width.get_rect().width - 10, 10))
 
     # show room height
-    room_height = font.render(str(settings.ROOM_HEIGHT), True, magenta)
-    screen.blit(room_height, (settings.SCREEN_WIDTH - 80, 30))
+    room_height = font.render("Room height: " + str(settings.ROOM_HEIGHT), True, magenta)
+    screen.blit(room_height, (settings.SCREEN_WIDTH - room_height.get_rect().width - 10, 40))
 
     # Draws the surface object to the screen.
     pygame.display.update()
@@ -225,28 +225,28 @@ def draw_every_generation(data):
 
         # =======  Left down corner info =======
         # show current generation
-        generation = settings.FONT.render("generation: " + str(data["current_generation"]), True, magenta)
-        settings.SCREEN.blit(generation, (10, settings.SCREEN_HEIGHT - 60))
+        generation = settings.FONT.render("Generation: " + str(data["current_generation"]), True, magenta)
+        settings.SCREEN.blit(generation, (10, settings.SCREEN_HEIGHT - 30))
 
         # show last data value
-        last_data = settings.FONT.render("fitness: " + str(data["report_list"][-1]), True, magenta)
-        settings.SCREEN.blit(last_data, (10, settings.SCREEN_HEIGHT - 30))
+        last_data = settings.FONT.render("Fitness: " + str(data["report_list"][-1]), True, magenta)
+        settings.SCREEN.blit(last_data, (10, settings.SCREEN_HEIGHT - 60))
 
         from GA_furniture import set_sprite_values
         for obj_data in data.last_generation.variables:
             set_sprite_values(obj_data)
-            # draw_all(data, False)
             settings.CURRENT_GA_SPRITE.draw(settings.DISPLAY_SURFACE)
-            settings.SCREEN.blit(pygame.transform.scale(
-                settings.DISPLAY_SURFACE,  # Screen with camera data
-                (settings.SCREEN_WIDTH * settings.SCALE, settings.SCREEN_HEIGHT * settings.SCALE)),  # Zoom screen
-                (settings.X_OFFSET, settings.Y_OFFSET))  # Move screen
+
+        settings.SCREEN.blit(pygame.transform.scale(
+            settings.DISPLAY_SURFACE,  # Screen with camera data
+            (settings.SCREEN_WIDTH * settings.SCALE, settings.SCREEN_HEIGHT * settings.SCALE)),  # Zoom screen
+            (settings.X_OFFSET, settings.Y_OFFSET))  # Move screen
 
         draw_all(data, False)
         settings.SCREEN.fill(white_dark)
         settings.DISPLAY_SURFACE.fill(white_dark)
 
-        settings.CLOCK.tick(60)
+        settings.CLOCK.tick(settings.FPS_IN_EVERY_N)
 
         # draw_all()  # JUST fill white color?
     if pygame.get_init():
