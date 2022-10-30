@@ -10,9 +10,11 @@ def get_bedroom_guest_17__24_9m():
     # generate double bed 160x200x60
     furniture_obj.append(DoubleBed(160, 200, 60))
 
-    # generate 2 nightstands 60x50x60
+    # generate nightstand 60x50x60
     furniture_obj.append(Nightstand(60, 50, 60))
-    # furniture_obj.append(Nightstand(60, 50, 60))
+
+    # generate optional nightstand 60x50x60
+    furniture_obj.append(Nightstand(60, 50, 60, 0, 0, 0, 0, True))
 
     # generate Table lamp 20x20x30
     furniture_obj.append(TableLamp(30, 30, 30, 0, 0, 0, 60))
@@ -26,8 +28,8 @@ def get_bedroom_guest_17__24_9m():
     # generate Computer Chair # 48x52x45
     furniture_obj.append(ComputerChair(48, 52, 45))
 
-    # generate armchair # 91x84x87
-    furniture_obj.append(Armchair(91, 84, 87))
+    # generate optional armchair # 91x84x87
+    furniture_obj.append(Armchair(91, 84, 87, 0, 0, 0, 0, True))
 
     # generate big carpet # 230x160
     furniture_obj.append(CarpetBig(230, 160, 0))
@@ -39,7 +41,7 @@ def get_bedroom_master_17__24_9m():
     furniture_obj = get_bedroom_guest_17__24_9m()
 
     # generate tv 55"(122x69x10cm)
-    furniture_obj.insert(3, TV(122, 10, 69, 0, 0, 0, 120, True))
+    furniture_obj.insert(4, TV(122, 10, 69, 0, 0, 0, 120, True))
 
     return furniture_obj
 

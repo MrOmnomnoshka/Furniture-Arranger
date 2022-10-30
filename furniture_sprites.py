@@ -5,7 +5,7 @@ from room_parts import Wall, Door, Window
 class DoubleBed(Furniture):
     image_path = "images/furniture/double_bed.png"
 
-    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0}}
+    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
 
 
 class SingleBed(Furniture):
@@ -15,25 +15,27 @@ class SingleBed(Furniture):
 class Dresser(Furniture):
     image_path = "images/furniture/dresser.png"
 
-    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0}}
+    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
 
 
 class Table(Furniture):
     image_path = "images/furniture/table.png"
 
-    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 150), "angle": 0}}
+    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 150), "angle": 0, "required": True}}
 
 
 class ComputerTable(Furniture):
     image_path = "images/furniture/computer table.png"
 
-    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0}}
+    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
+                               DoubleBed: {"sides": ("any", "any", ">30"), "angle": "any"}}
 
 
 class Armchair(Furniture):
     image_path = "images/furniture/armchair.png"
 
-    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0}}
+    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
+                               DoubleBed: {"sides": ("any", "any", ">30"), "angle": "any"}}
              #Sofa: {"sides": ("midlr", "midlr", 0), "angle": 45}}  # TODO: add 45 angle to side and -45 to other side
 
 
@@ -95,7 +97,7 @@ class Nightstand(Furniture):
 
     rules_to_this_furniture = {Sofa: {"sides": ("midlr", "midlr", 0), "angle": 0},
                                #Armchair: {"sides": ("midlr", "midlr", 0), "angle": 0},
-                               DoubleBed: {"sides": ("midtop", "midtop", 0), "angle": 0},
+                               DoubleBed: {"sides": ("top", "top", 0), "angle": 0},
                                Window: None}
 
 
@@ -112,7 +114,8 @@ class TableRound(Furniture):
 class Wardrobe(Furniture):
     image_path = "images/furniture/wardrobe.png"
 
-    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0}}
+    rules_to_this_furniture = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
+                               DoubleBed: {"sides": ("any", "any", ">30"), "angle": "any"}}
 
 
 class CarpetBig(Furniture):

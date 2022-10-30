@@ -37,7 +37,7 @@ class SpriteObject(pygame.sprite.Sprite):
 
     def update(self):
         self.update_image()
-        self.rect.clamp_ip(0, 0, settings.ROOM_WIDTH, settings.ROOM_HEIGHT)
+        # self.rect.clamp_ip(0, 0, settings.ROOM_WIDTH, settings.ROOM_HEIGHT)  # TODO:if room not a rect - clamp?
 
         if self.scale_old != settings.SCALE:
             self.original_image = pygame.transform.scale(self.original_image,

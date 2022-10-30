@@ -167,16 +167,23 @@ def generate_furniture():
     return furniture_obj
 
 
+def set_room_params(room_size_sqm):
+    w, h = generate_room_parameters(room_size_sqm)
+    settings.ROOM_WIDTH, settings.ROOM_HEIGHT = max([w, h]), min([w, h])
+    settings.ROOM_SQUARE = round((settings.ROOM_WIDTH * settings.ROOM_HEIGHT) / 10000, 2)
+    settings.ROOM_WIDTH += settings.WALLS_WIDTH * 2
+    settings.ROOM_HEIGHT += settings.WALLS_WIDTH * 2
+    settings.X_OFFSET = (settings.SCREEN_WIDTH - settings.ROOM_WIDTH) // 2
+    settings.Y_OFFSET = (settings.SCREEN_HEIGHT - settings.ROOM_HEIGHT) // 2
+
+
 def main():
     # debug_func()
     # room_size_sqm = float(input("Enter room size in sq meters: "))
     room_size_sqm = 24.9
 
     for amount in range(settings.MAIN_ITERATIONS):
-        w, h = generate_room_parameters(room_size_sqm)
-        settings.ROOM_WIDTH, settings.ROOM_HEIGHT = max([w, h]), min([w, h])
-        settings.X_OFFSET = (settings.SCREEN_WIDTH - settings.ROOM_WIDTH) // 2
-        settings.Y_OFFSET = (settings.SCREEN_HEIGHT - settings.ROOM_HEIGHT) // 2
+        set_room_params(room_size_sqm)
 
         start_time = time()
 

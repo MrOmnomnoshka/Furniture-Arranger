@@ -184,8 +184,8 @@ def draw_all(data=None, draw_bg=True):
                 # pygame.display.update()
                 # DELETE LINE
 
-        # # Draw room width and height rect
-        # pygame.draw.rect(camera_display, dark_yellow, (0, 0, settings.ROOM_LENGTH, settings.ROOM_WIDTH), 2)
+        # Draw room width and height rect
+        pygame.draw.rect(camera_display, dark_yellow, (0, 0, settings.ROOM_WIDTH, settings.ROOM_HEIGHT), 2)
 
     screen.blit(pygame.transform.scale(
         camera_display,  # Screen with camera data
@@ -204,12 +204,16 @@ def draw_all(data=None, draw_bg=True):
 
     # =======  Right up corner info =======
     # show room width
-    room_width = font.render("Room width: " + str(settings.ROOM_WIDTH), True, magenta)
+    room_width = font.render("Room width: " + str(settings.ROOM_WIDTH - settings.WALLS_WIDTH * 2), True, magenta)
     screen.blit(room_width, (settings.SCREEN_WIDTH - room_width.get_rect().width - 10, 10))
 
     # show room height
-    room_height = font.render("Room height: " + str(settings.ROOM_HEIGHT), True, magenta)
+    room_height = font.render("Room height: " + str(settings.ROOM_HEIGHT - settings.WALLS_WIDTH * 2), True, magenta)
     screen.blit(room_height, (settings.SCREEN_WIDTH - room_height.get_rect().width - 10, 40))
+
+    # show room square
+    room_square = font.render("Room square: " + str(settings.ROOM_SQUARE), True, magenta)
+    screen.blit(room_square, (settings.SCREEN_WIDTH - room_square.get_rect().width - 10, 70))
 
     # Draws the surface object to the screen.
     pygame.display.update()
