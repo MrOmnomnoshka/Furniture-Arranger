@@ -10,8 +10,8 @@ import room_rules
 
 def generate_room_parameters(room_size, accuracy=2):
     multiplier = 10 ** accuracy  # accuracy = 2  # how many decimal places to round to
-    min_size = 3  # from 2.5m
-    max_size = room_size // 2.5  # to half of a room size
+    min_size = 3  # from 3m
+    max_size = room_size // 3  # to half of a room size
     width = randrange(min_size * multiplier, max_size * multiplier) / multiplier
     height = round(room_size/width, accuracy)
     return int(width*100), int(height*100)  # , depth=250?
@@ -42,13 +42,13 @@ def generate_walls_rectangle():
     walls = list()
     # generate 4 walls in rectangular form
     walls.append(Wall(settings.ROOM_HEIGHT, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 90))
-    walls[-1].rect.topleft = (0, 0)  # left
+    walls[-1].set_pos(0, 0)  # left
     walls.append(Wall(settings.ROOM_WIDTH, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 0))
-    walls[-1].rect.topleft = (0, 0)  # top
+    walls[-1].set_pos(0, 0)  # top
     walls.append(Wall(settings.ROOM_HEIGHT, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 270))
-    walls[-1].rect.topleft = (settings.ROOM_WIDTH - settings.WALLS_WIDTH, 0)  # right
+    walls[-1].set_pos(settings.ROOM_WIDTH - settings.WALLS_WIDTH, 0)  # right
     walls.append(Wall(settings.ROOM_WIDTH, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 180))
-    walls[-1].rect.topleft = (0, settings.ROOM_HEIGHT - settings.WALLS_WIDTH)  # bottom
+    walls[-1].set_pos(0, settings.ROOM_HEIGHT - settings.WALLS_WIDTH)  # bottom
     return walls
 
 
@@ -56,27 +56,27 @@ def generate_walls_with_corners():
     walls = list()
     # generate 4 walls in rectangular form with 2 bottom corners
     walls.append(Wall(settings.ROOM_HEIGHT // 1.3, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 90))
-    walls[-1].rect.topleft = (0, 0)  # left
+    walls[-1].set_pos(0, 0)  # left
     walls.append(Wall(settings.ROOM_WIDTH, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 0))
-    walls[-1].rect.topleft = (0, 0)  # top
+    walls[-1].set_pos(0, 0)  # top
     walls.append(Wall(settings.ROOM_HEIGHT // 1.3, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 270))
-    walls[-1].rect.topleft = (settings.ROOM_WIDTH - settings.WALLS_WIDTH, 0)  # right
+    walls[-1].set_pos(settings.ROOM_WIDTH - settings.WALLS_WIDTH, 0)  # right
     walls.append(Wall(settings.ROOM_WIDTH // 4, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 180))
-    walls[-1].rect.topleft = (0, settings.ROOM_HEIGHT // 1.3 - settings.WALLS_WIDTH)  # bottom left corner
+    walls[-1].set_pos(0, settings.ROOM_HEIGHT // 1.3 - settings.WALLS_WIDTH)  # bottom left corner
     walls.append(Wall(settings.ROOM_HEIGHT - settings.ROOM_HEIGHT // 1.3 + settings.WALLS_WIDTH, settings.WALLS_WIDTH,
                       settings.ROOM_DEPTH, 90))
-    walls[-1].rect.topleft = (settings.ROOM_WIDTH // 4 - settings.WALLS_WIDTH,
+    walls[-1].set_pos(settings.ROOM_WIDTH // 4 - settings.WALLS_WIDTH,
                               settings.ROOM_HEIGHT // 1.3 - settings.WALLS_WIDTH)  # side left corner
     walls.append(
         Wall(settings.ROOM_WIDTH // 2 + settings.WALLS_WIDTH * 2, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 180))
-    walls[-1].rect.topleft = (
+    walls[-1].set_pos(
         settings.ROOM_WIDTH // 4 - settings.WALLS_WIDTH, settings.ROOM_HEIGHT - settings.WALLS_WIDTH)  # mid bottom
     walls.append(Wall(settings.ROOM_HEIGHT - settings.ROOM_HEIGHT // 1.3 + settings.WALLS_WIDTH, settings.WALLS_WIDTH,
                       settings.ROOM_DEPTH, 270))
-    walls[-1].rect.topleft = (settings.ROOM_WIDTH - settings.ROOM_WIDTH // 4,
+    walls[-1].set_pos(settings.ROOM_WIDTH - settings.ROOM_WIDTH // 4,
                               settings.ROOM_HEIGHT // 1.3 - settings.WALLS_WIDTH)  # side right corner
     walls.append(Wall(settings.ROOM_WIDTH // 4, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 180))
-    walls[-1].rect.topleft = (settings.ROOM_WIDTH - settings.ROOM_WIDTH // 4,
+    walls[-1].set_pos(settings.ROOM_WIDTH - settings.ROOM_WIDTH // 4,
                               settings.ROOM_HEIGHT // 1.3 - settings.WALLS_WIDTH)  # bottom left corner
     return walls
 
@@ -108,7 +108,7 @@ def generate_room():
 
     # generate window # 170cm
     window = generate_object_in_walls(Window, 170, walls)
-    while window.rect.colliderect(door.rect):  # if intersects with door  # TODO: make right angle intersection
+    while window.rect.colliderect(door.rect.inflate(30, 30)):  # if intersects with door+30  # TODO: make right angle intersection
         window = generate_object_in_walls(Window, 170, walls)
 
     return [door, window] + walls
@@ -168,13 +168,17 @@ def generate_furniture():
 
 
 def set_room_params(room_size_sqm):
-    w, h = generate_room_parameters(room_size_sqm)
-    settings.ROOM_WIDTH, settings.ROOM_HEIGHT = max([w, h]), min([w, h])
+    if settings.GENERATE_RANDOM_ROOM:
+        w, h = generate_room_parameters(room_size_sqm)
+        settings.ROOM_WIDTH, settings.ROOM_HEIGHT = max([w, h]), min([w, h])
+    else:
+        settings.ROOM_WIDTH, settings.ROOM_HEIGHT = settings.ROOM_WIDTH, settings.ROOM_HEIGHT
+
     settings.ROOM_SQUARE = round((settings.ROOM_WIDTH * settings.ROOM_HEIGHT) / 10000, 2)
     settings.ROOM_WIDTH += settings.WALLS_WIDTH * 2
     settings.ROOM_HEIGHT += settings.WALLS_WIDTH * 2
-    settings.X_OFFSET = (settings.SCREEN_WIDTH - settings.ROOM_WIDTH) // 2
-    settings.Y_OFFSET = (settings.SCREEN_HEIGHT - settings.ROOM_HEIGHT) // 2
+    settings.X_OFFSET = (settings.SCREEN_WIDTH / settings.SCALE - settings.ROOM_WIDTH) // 2
+    settings.Y_OFFSET = (settings.SCREEN_HEIGHT / settings.SCALE - settings.ROOM_HEIGHT) // 2
 
 
 def main():
@@ -185,20 +189,22 @@ def main():
     for amount in range(settings.MAIN_ITERATIONS):
         set_room_params(room_size_sqm)
 
-        start_time = time()
 
         # furniture_obj = generate_furniture()
         # furniture_obj = room_rules.get_bedroom_guest_17__24_9m()
-        furniture_obj = room_rules.get_bedroom_master_17__24_9m()
+        # furniture_obj = room_rules.get_bedroom_master_17__24_9m()
+        furniture_obj = room_rules.living_room_9__15m()
 
         rooms_obj = generate_room()
         settings.ALL_OBJECTS = rooms_obj
         settings.FURNITURE_OBJECTS = list()
         settings.SPRITE_ORDER = list()
 
+        start_time = time()
         for i, f_obj in enumerate(furniture_obj):
-            obj_str = f" Now running: '{f_obj.__class__.__name__.upper()}' ({i+1}/{len(furniture_obj)}) "
-            print(obj_str.center(50, "="))
+            if settings.START_GA:
+                obj_str = f" Now running: '{f_obj.__class__.__name__.upper()}' ({i+1}/{len(furniture_obj)}) "
+                print(obj_str.center(50, "="))
             settings.ALL_OBJECTS.append(f_obj)
             settings.FURNITURE_OBJECTS.append(f_obj)
             settings.CURRENT_GA_SPRITE = f_obj

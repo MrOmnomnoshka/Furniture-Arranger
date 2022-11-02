@@ -1,6 +1,6 @@
 import settings
 from math_2d import *
-from sprite_object import *
+from sprite_object import SpriteObject
 from math import copysign
 import room_parts
 # from main import draw_loop  # DELETE LATER
@@ -19,17 +19,8 @@ class Furniture(SpriteObject):
         if hasattr(self, "rules_to_this_furniture"):
             self.rules.update(self.rules_to_this_furniture)
 
-    def update(self):
-        super().update()
-
-        if self.active and pygame.get_init():  # TODO: remake to only 1 active sprite in class
-            if pygame.mouse.get_pressed()[0]:
-                self.rotate(1)
-            if pygame.mouse.get_pressed()[2]:
-                self.rotate(-1)
-
-            pos_off = [p - o for p, o in zip(pygame.mouse.get_pos(), (settings.X_OFFSET, settings.Y_OFFSET))]
-            self.rect.center = pos_off
+    # def update(self):
+    #     super().update()
 
     def get_intersections(self, sprite):
         # Special case for zero-depth objects (like carpets)
@@ -49,10 +40,10 @@ class Furniture(SpriteObject):
                 # Check for points intersection
                 pnts_inside = list()
                 for pnt in self_pts:
-                    if sprite.point_in_rect(pnt):
+                    if point_in_rect(pnt, sprite_pts):
                         pnts_inside.append(pnt)
                 for pnt in sprite_pts:
-                    if self.point_in_rect(pnt):
+                    if point_in_rect(pnt, self_pts):
                         pnts_inside.append(pnt)
 
                 if pnts_inside:  # Collide but one inside another
@@ -63,10 +54,10 @@ class Furniture(SpriteObject):
                 acceptable_diff = (self.depth + sprite.depth) // 2
                 current_diff = abs(self.z - sprite.z)
                 if current_diff >= acceptable_diff:
-                    # print("No depth intersection")
+                    if isinstance(sprite, room_parts.Wall):
+                        return "WALL", intersection
                     return False  # exit without intersection
                 else:
-                    # print("Depth intersection")
                     return "z intersection", acceptable_diff - current_diff
 
         return False  # No collisions

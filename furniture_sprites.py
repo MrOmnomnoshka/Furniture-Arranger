@@ -56,8 +56,8 @@ class FloorLamp(Furniture):
     image_path = "images/furniture/floor lamp.png"
 
     rules_to_this_furniture = {Sofa: {"sides": ("midlr", "midlr", 0), "angle": 0},
-             Armchair: {"sides": ("midlr", "midlr", 0), "angle": 0},
-             Dresser: {"sides": ("midlr", "midlr", 0), "angle": 0}}
+                               Armchair: {"sides": ("midlr", "midlr", 0), "angle": 0},
+                               Dresser: {"sides": ("midlr", "midlr", 0), "angle": 0}}
 
     # def __init__(self, *args):
     #     super().__init__(*args)  # TODO: this
@@ -79,7 +79,7 @@ class ComputerChair(Furniture):
 class CoffeeTable(Furniture):
     image_path = "images/furniture/coffee_table.png"
 
-    rules_to_this_furniture = {Sofa: {"sides": ("midbottom", "midbottom", 35), "angle": 180},
+    rules_to_this_furniture = {Sofa: {"sides": ("midbottom", "midbottom", 20), "angle": 180},
                                Window: None}
 
     # rules_to_this_furniture = {Sofa: {"sides": ("center", "midbottom", 0), "angle": 0},

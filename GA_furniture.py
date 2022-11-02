@@ -1,7 +1,6 @@
 from geneticalgorithm2 import geneticalgorithm2 as ga
 from geneticalgorithm2 import ActionConditions, MiddleCallbacks
 import settings
-import os
 
 
 def set_sprite_values(data):
@@ -47,7 +46,8 @@ def start_ga():
                        'population_size': settings.POPULATION_SIZE,
                        'mutation_probability': settings.MUTATION_PROBABILITY,
                        'elit_ratio': settings.ELIT_RATIO,
-                       'parents_portion': settings.PARENTS_PORTION, }
+                       'parents_portion': settings.PARENTS_PORTION,
+                       'max_iteration_without_improv': settings.MAX_ITERATION_WITHOUT_IMPROV}
 
     # furniture_amount = len(settings.FURNITURE_SPRITES)
     model = ga(function=fitness_function,
@@ -61,6 +61,8 @@ def start_ga():
     from draw_engine import draw_every_generation
     model.run(no_plot=True, stop_when_reached=settings.STOP_WHEN_REACHED,
               middle_callbacks=[MiddleCallbacks.UniversalCallback(draw_every_generation, ActionConditions.Always())])
+    # MiddleCallbacks.UniversalCallback(func, ActionConditions.AfterStagnation(stagnation_generations=100))])
+    # MiddleCallbacks.ReduceMutationGen(reduce_coef=0.8, min_mutation=0.005, reduce_each_generation=10, reload_each_generation=500)])
 
     solution = model.result
     return solution
