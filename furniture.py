@@ -10,16 +10,18 @@ class Furniture(SpriteObject):
     active = False
     show_distances = False
 
-    rules_to_all_furniture = {room_parts.Door: {"sides": ("any", "bottom", ">110"), "angle": "any", "required": True},  # TODO: для двери сделать пермещение вниз на целое число и влево на половину этого числа ( если петли стоят слева и дверь вдруг открывется на все 180 градусов)
-                              room_parts.Window: {"sides": ("any", "bottom", ">75"), "angle": "any", "required": True}}  # TODO: can't ues furniture_sprites, mb add more classes
-                              #furniture_sprites.TV: {"sides": ("any", "bottom", ">60"), "angle": "any", "required": True}}
+    # rules_to_all_furniture = {room_parts.Door: {"sides": ("any", "bottom", ">110"), "angle": "any", "required": True},  # TODO: для двери сделать пермещение вниз на целое число и влево на половину этого числа ( если петли стоят слева и дверь вдруг открывется на все 180 градусов)
+    #                           room_parts.Window: {"sides": ("any", "bottom", ">75"), "angle": "any", "required": True}}  # TODO: can't ues furniture_sprites, mb add more classes
+    #                           #furniture_sprites.TV: {"sides": ("any", "bottom", ">60"), "angle": "any", "required": True}}
 
-    def __init__(self, *args, **kwargs):
-        self.rules = self.rules_to_all_furniture.copy()
-        if hasattr(self, "rules_to_this_furniture"):
-            self.rules.update(self.rules_to_this_furniture)
-
-        super().__init__(*args, **kwargs)
+    # def __init__(self, *args, **kwargs):
+    #     self.rules = self.rules_to_all_furniture.copy()
+    #     if hasattr(self, "rules_to_this_furniture"):
+    #         self.rules.update(self.rules_to_this_furniture)
+    #     if hasattr(self, "margins_to_this"):
+    #         self.margins.update(self.margins_to_this)
+    #
+    #     super().__init__(*args, **kwargs)
 
     # def update(self):
     #     super().update()
@@ -31,7 +33,9 @@ class Furniture(SpriteObject):
 
         intersection = None
         if sprite != self and self.rect.colliderect(sprite.rect):
-            self_pts, sprite_pts = self.get_rect_angle(), sprite.get_rect_angle()
+            self_pts, sprite_pts = self.get_rotated_rect(), sprite.get_rotated_rect()
+
+            # TODO: remake with math2d module: 'get_rotated_rect_intersections(rect_1, rect_2)'
 
             # Check for lines intersection
             line_intersections = get_line_intersection(self_pts, sprite_pts)
@@ -188,18 +192,24 @@ class Furniture(SpriteObject):
     def get_fitness(self):
         fit_sum = 0
 
-        # Solve collisions
         for other_sprite in settings.ALL_OBJECTS:
-            penalty = self.solve_collisions(other_sprite)
-            if penalty:
-                # fit_sum += penalty
-                return penalty
+            if other_sprite != self:
+                # Solve collisions
+                penalty = self.solve_collisions(other_sprite)
+                if penalty:
+                    # fit_sum += penalty
+                    return penalty
+
+                # Solve sprites offsets rules
+                me_in_sprite = get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect)
+                sprite_in_me = get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)
+                if me_in_sprite or sprite_in_me:
+                    return settings.COLLISION_PENALTY // 10000
 
         #  combine every instance by rule groups
         rule_group = []
 
-        # delete all old 'rect_rotated_rules' for correct drawing in DEBUG mode
-        self.rect_rotated_rules = []
+        self.rect_rotated_rules = []  # delete all old 'rect_rotated_rules' for correct drawing in DEBUG mode
         for rule_obj in self.rules:
             if self.rules[rule_obj]:  # if not None
                 rule_group.append([])

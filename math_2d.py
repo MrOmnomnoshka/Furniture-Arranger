@@ -162,28 +162,28 @@ def convert_side(side, rect):
         return (rect[2] - rect[0]) / 2 + rect[0]
 
 
-def move_side_to_distance(desired_dist, other_side, other_sprite, other_side_vec):
+def move_side_to_distance(desired_dist, side, sprite, side_vec):
     # if side is a line
-    if isinstance(other_side_vec, tuple):
-        return_vec = [Vector2(other_side_vec[0]), Vector2(other_side_vec[1])]
+    if isinstance(side_vec, tuple):
+        return_vec = [Vector2(side_vec[0]), Vector2(side_vec[1])]
     else:  # if side is a point
-        return_vec = Vector2(other_side_vec)
+        return_vec = Vector2(side_vec)
 
     dist_vec = Vector2(0, desired_dist)
     # rotate by side of other sprite
-    if "top" in other_side:
+    if "top" in side:
         dist_vec.rotate_ip(180)
-    elif "bottom" in other_side:
+    elif "bottom" in side:
         dist_vec.rotate_ip(0)
-    elif "left" in other_side:
+    elif "left" in side:
         dist_vec.rotate_ip(90)
-    elif "right" in other_side:
+    elif "right" in side:
         dist_vec.rotate_ip(-90)
     # AND rotate by other sprite 'view'
-    dist_vec.rotate_ip(-other_sprite.angle)
+    dist_vec.rotate_ip(-sprite.angle)
 
     # if side is a line
-    if isinstance(other_side_vec, tuple):
+    if isinstance(side_vec, tuple):
         return_vec[0] += dist_vec
         return_vec[1] += dist_vec
     else:  # if side is a point

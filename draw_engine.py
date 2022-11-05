@@ -4,6 +4,7 @@ import settings
 from pygame.math import Vector2
 from colors import *
 from furniture import Furniture
+from room_parts import Wall, Door, Window
 
 
 def init_pygame(frame_name):
@@ -71,9 +72,9 @@ def get_mouse_offset():
     return [(p / settings.SCALE - o) for p, o in zip(pygame.mouse.get_pos(), (settings.X_OFFSET, settings.Y_OFFSET))]
 
 
-def change_offset_and_scale(scroll, shift):
+def zoom_to_mouse(scroll, shift):
     old_scale = settings.SCALE
-    settings.SCALE = max(0.2, round(settings.SCALE + scroll / (20 - 10*shift), 3))
+    settings.SCALE = max(0.2, round(settings.SCALE + scroll / (20 - 10 * shift), 3))
 
     mouse_pos = Vector2(pygame.mouse.get_pos())
     topleft = mouse_pos / settings.SCALE
@@ -105,9 +106,8 @@ def event_handling():
         if event.type == pygame.QUIT:
             program_exit()
         elif event.type == pygame.MOUSEWHEEL:
-            # if key down in all events
             key_mods = pygame.key.get_mods()
-            change_offset_and_scale(event.y, key_mods & pygame.KMOD_SHIFT)  # or just regular pygame.SHIFT
+            zoom_to_mouse(event.y, key_mods & pygame.KMOD_SHIFT)  # or just regular pygame.SHIFT
         elif event.type == pygame.FINGERMOTION:  # FOR TouchScreens (Android OS)
             settings.DEBUG = not settings.DEBUG
 
@@ -124,7 +124,7 @@ def event_handling():
                 get_hovered_sprite_fitness()
             elif event.key == pygame.K_h:
                 settings.H_DEBUG = not settings.H_DEBUG
-                print("s debug", settings.H_DEBUG)
+                print("'H' pressed for debug.", settings.H_DEBUG)
             elif event.key == pygame.K_n:
                 settings.DRAW_EVERY_N = not settings.DRAW_EVERY_N
             elif event.key == pygame.K_SPACE:
@@ -168,7 +168,9 @@ def draw_all(draw_bg=True):
 
     if not settings.SPRITE_ORDER or len(settings.SPRITE_ORDER) != len(all_sprites):
         # sort sprites by z value
-        settings.SPRITE_ORDER = sorted(all_sprites, key=lambda s: s.z)
+        z_sorted = sorted(all_sprites, key=lambda s: s.z + s.depth)  # z+depth//2 - is top of sprite, from top-view
+        right_draw_sorted = sorted(z_sorted, key=lambda s: bool(type(s) in (Window, Door)))
+        settings.SPRITE_ORDER = right_draw_sorted
 
     for sprite in settings.SPRITE_ORDER:
         sprite.update()
@@ -189,7 +191,7 @@ def draw_all(draw_bg=True):
             # pygame.draw.rect(screen, red, rect, draw_width)
 
             # draw GREEN rectangle around rotated image
-            pts = add_offset_to_position(sprite.get_rect_angle())
+            pts = add_offset_to_position(sprite.get_rotated_rect())
             pygame.draw.lines(screen, green, True, pts, draw_width)
 
             # Draw RED sprite view arrow
@@ -197,8 +199,10 @@ def draw_all(draw_bg=True):
             lines = add_offset_to_position([Vector2(sprite.rect.center), sprite.rect.center + arrow_vec])
             pygame.draw.lines(screen, red, True, lines, draw_width)
 
-            # Draw BLUE border of distances ('>' '<') rules objects
-            for other_sprite, other_rect in sprite.rect_rotated_rules:
+            # Draw BLUE border of sprite offsets
+            #  if offset is not equal to sprite rect
+            other_rect = sprite.offset_rotated_rect
+            if other_rect != sprite.get_rotated_rect():
                 other_rect = add_offset_to_position(other_rect)
                 pygame.draw.lines(screen, blue, True, other_rect, draw_width)
 
@@ -206,7 +210,6 @@ def draw_all(draw_bg=True):
             if Furniture.show_distances == sprite:
                 for other_sprite in all_sprites:
                     if sprite != other_sprite:
-
                         # DRAW DISTANCES TO OTHER SPRITES
                         distances = [sprite.calc_nearest_distance(other_sprite),
                                      other_sprite.calc_nearest_distance(sprite)]

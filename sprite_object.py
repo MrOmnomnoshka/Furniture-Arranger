@@ -13,17 +13,18 @@ class SpriteObject(pygame.sprite.Sprite):
 
     # For self rotated rect
     old_center, old_angle = (0, 0), 0
-    old_rect_angle = None
+    rotated_rect = None
+    offset_rotated_rect = None
 
     original_image = None  # Every sprite has its own image
 
-    def __init__(self, width=50, height=50, depth=50, angle=0, x=0, y=0, z=0, optional=False):  # TODO: need xyz here|'set_pos'?
+    def __init__(self, width=50, height=50, depth=50, angle=0, x=0, y=0, z=0, optional=False):  # TODO: need xyz here or just in 'set_pos'?
         pygame.sprite.Sprite.__init__(self)
 
-        if not hasattr(self, "width"):
-            self.width = width  # TODO: add possibility to change standard width/height/depth
-            self.height = height
-            self.depth = depth
+        self.rules = dict()  # dict with rules for each sprite      | OLD VERSION: self.rules_to_all_furniture.copy()
+        self.offsets = {"top": 0, "bottom": 0, "left": 0, "right": 0}  # margins - dict with margins for each side
+        self.set_unique_params(width, height, depth)  # set rules, margins and (width, height, depth) parameters
+
         if not hasattr(self, "z"):
             self.z = depth // 2 + z
 
@@ -46,6 +47,19 @@ class SpriteObject(pygame.sprite.Sprite):
 
         self.rect_rotated_rules = list()
 
+    def set_unique_params(self, width, height, depth):
+        if hasattr(self, "rules_to_this"):
+            self.rules.update(self.rules_to_this)
+        if hasattr(self, "offsets_to_this"):
+            self.offsets.update(self.offsets_to_this)
+
+        for param in ("width", "height", "depth"):
+            if not hasattr(self, param):
+                setattr(self, param, locals()[param])
+            else:
+                if locals()[param] != 50 and locals()[param] != getattr(self, param):
+                    setattr(self, param, locals()[param])
+
     def update(self):
         # self.rect.clamp_ip(0, 0, settings.ROOM_WIDTH, settings.ROOM_HEIGHT)  # TODO:if room not a rect - need clamp?
         self.update_image()
@@ -64,7 +78,7 @@ class SpriteObject(pygame.sprite.Sprite):
 
     def update_image(self):
         if self.is_sprite_changed() or self.is_scale_changed() or self.is_offset_changed():
-            self.get_rect_angle()  # update rect angle
+            self.get_rotated_rect()  # update rect angle
             self.old_angle = self.angle
             self.image = pygame.transform.rotate(self.original_image, self.angle)
             self.rect = self.image.get_rect(center=self.rect.center)
@@ -93,20 +107,36 @@ class SpriteObject(pygame.sprite.Sprite):
         return pygame.transform.scale(original_image, (self.width*scale, self.height*scale))
 
     def convert_self_side(self, side):
-        rect = self.get_rect_angle()  # [topleft, topright, bottomright, bottomleft]
+        rect = self.get_rotated_rect()  # [topleft, topright, bottomright, bottomleft]
         return convert_side(side, rect)
 
     # def __del__(self):
     #     print(f"Deleted {self.__class__.__name__}")
+    def calc_offset_rotated_rect(self, rotated_rect):
+        # Copy of rotated rect to make some changes in it
+        rotated_rect_copy = [Vector2(point) for point in rotated_rect]
+
+        # Append imaginary dist to all sides
+        for side in self.offsets:
+            if self.offsets[side] > 0:  # if distance greater than 0 move side to 'imaginary' side
+                side_vec = convert_side(side, rotated_rect_copy)
+                new_other_side_vec = move_side_to_distance(self.offsets[side], side, self, side_vec)
+
+                for i, side_point in enumerate(side_vec):
+                    for j, point in enumerate(rotated_rect_copy):
+                        if point == side_point:
+                            rotated_rect_copy[j] = new_other_side_vec[i]
+                            break
+        self.offset_rotated_rect = rotated_rect_copy
 
     def get_other_rect_from_rule(self, other_sprite, other_sides, desired_dist):
         if not any(other_sprite in rule_sprite for rule_sprite in self.rect_rotated_rules):# or True:  # TODO: in real time other_sprite pos/angle can be changed
-            other_rect = [Vector2(point) for point in other_sprite.get_rect_angle()]
+            other_rect = [Vector2(point) for point in other_sprite.get_rotated_rect()]
 
             # Append imaginary dist to all sides
             for other_side in other_sides:
-                other_side_vec = convert_side(other_side, other_rect)
                 if desired_dist > 0:  # if distance greater than 0 move side to 'imaginary' side
+                    other_side_vec = convert_side(other_side, other_rect)
                     new_other_side_vec = move_side_to_distance(desired_dist, other_side, other_sprite, other_side_vec)
 
                     for i, side_point in enumerate(other_side_vec):
@@ -136,7 +166,7 @@ class SpriteObject(pygame.sprite.Sprite):
                     #     print("HERE")
                     other_rect = self.get_other_rect_from_rule(other_sprite, other_sides, desired_dist)
 
-                    if get_rotated_rect_intersections(self.get_rect_angle(), other_rect):
+                    if get_rotated_rect_intersections(self.get_rotated_rect(), other_rect):
                         return settings.COLLISION_PENALTY // 100  # penalty
                     else:
                         return 0
@@ -172,10 +202,10 @@ class SpriteObject(pygame.sprite.Sprite):
             return min_d
 
     def calc_nearest_distance(self, sprite):
-        a, b, c, d = self.get_rect_angle()
+        a, b, c, d = self.get_rotated_rect()
 
         results = []
-        for p in sprite.get_rect_angle():
+        for p in sprite.get_rotated_rect():
             results.append([point_to_line(p, a, b), point_to_line(p, b, c),
                             point_to_line(p, c, d), point_to_line(p, d, a)])
 
@@ -195,20 +225,23 @@ class SpriteObject(pygame.sprite.Sprite):
 
     def check_mouse_over_rotated(self, mouse_pos):
         pos_off = [p - o for p, o in zip(mouse_pos, (settings.X_OFFSET, settings.Y_OFFSET))]
-        return point_in_rect(pos_off, self.get_rect_angle())
+        return point_in_rect(pos_off, self.get_rotated_rect())
 
-    def get_rect_angle(self):
+    def get_rotated_rect(self):
         center = Vector2(self.rect.center)
         # Check if smth changed or it's first time
-        if self.is_sprite_changed() or not self.old_rect_angle or self.is_scale_changed():
+        if self.is_sprite_changed() or not self.rotated_rect or self.is_scale_changed():
             self.old_center = center
             rect = self.original_image.get_rect(center=center)
             # rect = self.original_image.get_rect(topleft=self.rect.topleft)
             pts = [rect.topleft, rect.topright, rect.bottomright, rect.bottomleft]
             rect_angle = [(Vector2(p) - center).rotate(-self.angle) + center for p in pts]
-            self.old_rect_angle = rect_angle  # Replace it with new one
+            self.rotated_rect = rect_angle  # Replace it with new one
 
-        return self.old_rect_angle
+            # change offset rotated rect
+            self.calc_offset_rotated_rect(rect_angle)
+
+        return self.rotated_rect
 
     def is_sprite_changed(self):
         return self.old_center != self.rect.center or self.old_angle != self.angle
@@ -221,8 +254,8 @@ class SpriteObject(pygame.sprite.Sprite):
 
     def is_in_sprite(self, other_sprite):
         self_in_other = False
-        other_rect = other_sprite.get_rect_angle()
-        for pnt in self.get_rect_angle():
+        other_rect = other_sprite.get_rotated_rect()
+        for pnt in self.get_rotated_rect():
             if point_in_rect(pnt, other_rect):
                 self_in_other = True
                 break

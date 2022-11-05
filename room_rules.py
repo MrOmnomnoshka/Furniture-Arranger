@@ -95,3 +95,13 @@ def generate_furniture():
     furniture_obj.append(KitchenChair())
 
     return furniture_obj
+
+
+def all_furniture():
+    import sys
+    import inspect
+
+    class_members = inspect.getmembers(sys.modules[__name__], inspect.isclass)
+
+    furniture_obj = [obj() for name, obj in class_members if name not in ('Furniture', 'Door', 'Window', 'Wall')]
+    return furniture_obj
