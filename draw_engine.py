@@ -1,6 +1,5 @@
 import pygame
 
-# import room_parts
 import settings
 from pygame.math import Vector2
 from colors import *
@@ -72,51 +71,43 @@ def get_mouse_offset():
     return [(p / settings.SCALE - o) for p, o in zip(pygame.mouse.get_pos(), (settings.X_OFFSET, settings.Y_OFFSET))]
 
 
-def change_offset_and_scale(scroll):
+def change_offset_and_scale(scroll, shift):
     old_scale = settings.SCALE
-    settings.SCALE = max(0.2, round(settings.SCALE + scroll / 20, 3))
+    settings.SCALE = max(0.2, round(settings.SCALE + scroll / (20 - 10*shift), 3))
 
-    old_topleft_x = (settings.SCREEN_WIDTH / old_scale - settings.ROOM_WIDTH) // 2
-    old_topleft_y = (settings.SCREEN_HEIGHT / old_scale - settings.ROOM_HEIGHT) // 2
-    diff_x = settings.X_OFFSET - old_topleft_x
-    diff_y = settings.Y_OFFSET - old_topleft_y
+    mouse_pos = Vector2(pygame.mouse.get_pos())
+    topleft = mouse_pos / settings.SCALE
+    old_topleft = mouse_pos / old_scale
+    difference = old_topleft - Vector2(settings.X_OFFSET, settings.Y_OFFSET)
+    settings.X_OFFSET, settings.Y_OFFSET = topleft - difference
 
-    topleft_x = (settings.SCREEN_WIDTH / settings.SCALE - settings.ROOM_WIDTH) // 2
-    topleft_y = (settings.SCREEN_HEIGHT / settings.SCALE - settings.ROOM_HEIGHT) // 2
 
-    # can remove extra parameters - but it is not clear what is happening
-    # x_test = ((settings.SCREEN_WIDTH * (old_scale - settings.SCALE)) / (settings.SCALE * old_scale)) // 2 + settings.X_OFFSET
+def move_active_furniture():
+    if Furniture.active:
+        # mouse key down
+        mouse_keys = pygame.mouse.get_pressed()
+        shift_pressed = pygame.key.get_mods() & pygame.KMOD_SHIFT
+        if mouse_keys[0]:  # lmb
+            Furniture.active.rotate(1 + 2 * shift_pressed)
+        elif mouse_keys[2]:  # rmb
+            Furniture.active.rotate(-1 - 2 * shift_pressed)
 
-    # TODO: fix zooming to mouse
-    # screen_center_x = settings.SCREEN_WIDTH // 2
-    # screen_center_y = settings.SCREEN_HEIGHT // 2
-    # settings.X_OFFSET = ((screen_center_x - pygame.mouse.get_pos()[0]) / settings.SCALE)# + settings.SCREEN_WIDTH
-    # settings.Y_OFFSET = ((screen_center_y - pygame.mouse.get_pos()[1]) / settings.SCALE)# + settings.SCREEN_HEIGHT
-    # settings.X_OFFSET = ((pygame.mouse.get_pos()[0]) / settings.SCALE) - (screen_center_x/2) / settings.SCALE
-    # settings.Y_OFFSET = ((pygame.mouse.get_pos()[1]) / settings.SCALE) - (screen_center_y/2) / settings.SCALE
-    settings.X_OFFSET = topleft_x + diff_x## - (pygame.mouse.get_pos()[0] / settings.SCALE - screen_center_x)
-    settings.Y_OFFSET = topleft_y + diff_y## - (pygame.mouse.get_pos()[1] / settings.SCALE - screen_center_y)
+        Furniture.active.rect.center = get_mouse_offset()
 
 
 def event_handling():
     move_step = 25 // settings.SCALE  # TODO: screen movement from mouse
     done = False
 
-    if Furniture.active:
-        # mouse key down
-        mouse_keys = pygame.mouse.get_pressed()
-        if mouse_keys[0]:  # lmb
-            Furniture.active.rotate(1)
-        elif mouse_keys[2]:  # rmb
-            Furniture.active.rotate(-1)
-
-        Furniture.active.rect.center = get_mouse_offset()
+    move_active_furniture()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             program_exit()
         elif event.type == pygame.MOUSEWHEEL:
-            change_offset_and_scale(event.y)
+            # if key down in all events
+            key_mods = pygame.key.get_mods()
+            change_offset_and_scale(event.y, key_mods & pygame.KMOD_SHIFT)  # or just regular pygame.SHIFT
         elif event.type == pygame.FINGERMOTION:  # FOR TouchScreens (Android OS)
             settings.DEBUG = not settings.DEBUG
 
@@ -127,15 +118,15 @@ def event_handling():
                 done = True  # Exit for current iteration
             elif event.key == pygame.K_i:
                 print_furniture_sprites_info()
-            elif event.key == pygame.K_d:
+            elif event.key == pygame.K_d and (event.mod & pygame.KMOD_SHIFT):
                 settings.DEBUG = not settings.DEBUG
             elif event.key == pygame.K_f:
                 get_hovered_sprite_fitness()
-            elif event.key == pygame.K_s:
-                settings.S_DEBUG = not settings.S_DEBUG
-                print("s debug", settings.S_DEBUG)
+            elif event.key == pygame.K_h:
+                settings.H_DEBUG = not settings.H_DEBUG
+                print("s debug", settings.H_DEBUG)
             elif event.key == pygame.K_n:
-                settings.DEBUG_EVERY_N = not settings.DEBUG_EVERY_N
+                settings.DRAW_EVERY_N = not settings.DRAW_EVERY_N
             elif event.key == pygame.K_SPACE:
                 if Furniture.active:
                     Furniture.active = None
@@ -143,18 +134,16 @@ def event_handling():
                     change_furniture_attr("active")
             elif event.key == pygame.K_l:
                 change_furniture_attr("show_distances")
-            elif event.key == pygame.K_LEFT:
+            elif event.key in (pygame.K_LEFT, pygame.K_a):
                 settings.X_OFFSET -= move_step
-            elif event.key == pygame.K_RIGHT:
+            elif event.key in (pygame.K_RIGHT, pygame.K_d):
                 settings.X_OFFSET += move_step
-            elif event.key == pygame.K_UP:
+            elif event.key in (pygame.K_UP, pygame.K_w):
                 settings.Y_OFFSET -= move_step
-            elif event.key == pygame.K_DOWN:
+            elif event.key in (pygame.K_DOWN, pygame.K_s):
                 settings.Y_OFFSET += move_step
             elif event.key == pygame.K_r:
                 settings.SCALE = 1
-                for sprite in settings.FURNITURE_OBJECTS:
-                    sprite.rotate(-sprite.angle)
                 settings.X_OFFSET = (settings.SCREEN_WIDTH - settings.ROOM_WIDTH) // 2
                 settings.Y_OFFSET = (settings.SCREEN_HEIGHT - settings.ROOM_HEIGHT) // 2
     return done
@@ -194,6 +183,7 @@ def draw_all(draw_bg=True):
     if settings.DEBUG:
         draw_width = max(1, round(2 * settings.SCALE))
         for sprite in all_sprites:
+
             # # draw RED rectangle around the image
             # rect = add_offset_to_position(Vector2(sprite.rect.topleft)), sprite.image.get_size()
             # pygame.draw.rect(screen, red, rect, draw_width)
@@ -208,8 +198,8 @@ def draw_all(draw_bg=True):
             pygame.draw.lines(screen, red, True, lines, draw_width)
 
             # Draw BLUE border of distances ('>' '<') rules objects
-            for other_sprite in sprite.rect_rotated_rules_dict:
-                other_rect = add_offset_to_position(sprite.rect_rotated_rules_dict[other_sprite])
+            for other_sprite, other_rect in sprite.rect_rotated_rules:
+                other_rect = add_offset_to_position(other_rect)
                 pygame.draw.lines(screen, blue, True, other_rect, draw_width)
 
             # Draw BLUE distance lines from current sprite to other sprites
@@ -244,15 +234,10 @@ def draw_all(draw_bg=True):
     fps = font.render(f"FPS: {int(clock.get_fps())}", True, magenta)
     screen.blit(fps, (10, 10))
 
-    # Show mouse pos
+    # Show scaled mouse pos
     pos_scaled = [int(p) for p in get_mouse_offset()]
     mouse_pos = font.render(f"Mouse x,y: {str(pos_scaled)}", True, magenta)
     screen.blit(mouse_pos, (10, 40))
-
-    # Show scale
-    if settings.SCALE != 1:
-        scale = font.render(f"Scale: {settings.SCALE}", True, magenta)
-        screen.blit(scale, (10, 70))
 
     # =======  Right up corner info =======
     # show room width
@@ -267,12 +252,17 @@ def draw_all(draw_bg=True):
     room_square = font.render("Room square: " + str(settings.ROOM_SQUARE), True, magenta)
     screen.blit(room_square, (settings.SCREEN_WIDTH - room_square.get_rect().width - 10, 70))
 
+    # =======  Right down corner info =======
+    # Show scale
+    scale = font.render(f"Scale: 1:{settings.SCALE}", True, magenta)
+    screen.blit(scale, (settings.SCREEN_WIDTH - scale.get_rect().width - 10, settings.SCREEN_HEIGHT - 40))
+
     # Draws the surface object to the screen.
     pygame.display.update()
 
 
 def draw_every_generation(data):
-    if settings.DEBUG_EVERY_N:
+    if settings.DRAW_EVERY_N:
         if not pygame.get_init():
             init_pygame("draw_every_generation")
             settings.SCREEN.fill(white_dark)

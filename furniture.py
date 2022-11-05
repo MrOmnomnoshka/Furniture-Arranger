@@ -3,28 +3,30 @@ from math_2d import *
 from sprite_object import SpriteObject
 from math import copysign
 import room_parts
-# from main import draw_loop  # DELETE LATER
+import re
 
 
 class Furniture(SpriteObject):
     active = False
     show_distances = False
 
-    rules_to_all_furniture = {room_parts.Door: {"sides": ("any", "bottom", ">110"), "angle": "any", "required": True},
-                              room_parts.Window: {"sides": ("any", "bottom", ">60"), "angle": "any", "required": True}}  # TODO: для двери сделать пермещение вниз на целое число и влево на половину этого числа ( если петли стоят слева и дверь вдруг открывется на все 180 градусов)
+    rules_to_all_furniture = {room_parts.Door: {"sides": ("any", "bottom", ">110"), "angle": "any", "required": True},  # TODO: для двери сделать пермещение вниз на целое число и влево на половину этого числа ( если петли стоят слева и дверь вдруг открывется на все 180 градусов)
+                              room_parts.Window: {"sides": ("any", "bottom", ">75"), "angle": "any", "required": True}}  # TODO: can't ues furniture_sprites, mb add more classes
+                              #furniture_sprites.TV: {"sides": ("any", "bottom", ">60"), "angle": "any", "required": True}}
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
         self.rules = self.rules_to_all_furniture.copy()
         if hasattr(self, "rules_to_this_furniture"):
             self.rules.update(self.rules_to_this_furniture)
+
+        super().__init__(*args, **kwargs)
 
     # def update(self):
     #     super().update()
 
     def get_intersections(self, sprite):
         # Special case for zero-depth objects (like carpets)
-        if not isinstance(sprite, room_parts.Wall) and self.depth == 0 or sprite.depth == 0:
+        if not isinstance(sprite, room_parts.Wall) and self.depth <= 1 or sprite.depth <= 1:
             return False  # Object with zero depth can't intersect with other objects (except Walls)
 
         intersection = None
@@ -195,6 +197,9 @@ class Furniture(SpriteObject):
 
         #  combine every instance by rule groups
         rule_group = []
+
+        # delete all old 'rect_rotated_rules' for correct drawing in DEBUG mode
+        self.rect_rotated_rules = []
         for rule_obj in self.rules:
             if self.rules[rule_obj]:  # if not None
                 rule_group.append([])
@@ -210,40 +215,43 @@ class Furniture(SpriteObject):
         # Get fitness for every group
         for rule_instance in rule_group:
             if rule_instance:  # If not empty
-                nearest_object = min(rule_instance, key=lambda x: x[2][1])
-                other_sprite, rule, (angle_real, distances_real) = nearest_object
-                angle_desired, distances_desired = rule["angle"], rule["sides"]
-                rule_required = "required" in rule
+                for rule_obj in rule_instance:
+                    other_sprite, rule, (angle_real, distances_real) = rule_obj
+                    # other_sprite, rule, (angle_real, distances_real) = nearest_object
+                    angle_desired, distances_desired = rule["angle"], rule["sides"]
+                    rule_required = "required" in rule
 
-                distance_diff = abs(distances_real)  # No need in abs, because it's always positive
+                    distance_diff = abs(distances_real)  # No need in abs, because it's always positive
 
-                if angle_desired == "any":
-                    angle_diff = 0
-                elif angle_desired == "center":
-                    real_view = Vector2(0, 1).rotate(-self.angle)
-                    desired_view = (Vector2(other_sprite.rect.center) - Vector2(self.rect.center)).normalize()
-                    angle_diff_360 = real_view.angle_to(desired_view)
-                    angle_diff = abs(180 - (180 + angle_diff_360) % 360)
-                else:
-                    angle_diff_360 = abs(angle_desired - angle_real)
-                    angle_diff = abs(180 - (180 + angle_diff_360) % 360)
+                    if angle_desired == "any":
+                        angle_diff = 0
+                    elif angle_desired == "center":
+                        real_view = Vector2(0, 1).rotate(-self.angle)
+                        desired_view = (Vector2(other_sprite.rect.center) - Vector2(self.rect.center)).normalize()
+                        angle_diff_360 = real_view.angle_to(desired_view)
+                        angle_diff = abs(180 - (180 + angle_diff_360) % 360)
+                    else:
+                        angle_diff_360 = abs(angle_desired - angle_real)
+                        angle_diff = abs(180 - (180 + angle_diff_360) % 360)
 
-                # if isinstance(other_sprite, Wall):
-                #     affinity = 100
-                # # elif isinstance(self, furniture_sprites.Table):  # TODO: FOR DEBUG
-                # #     affinity = 0
-                # else:
-                #     affinity = 1
-                affinity = 1
+                    # if isinstance(other_sprite, Wall):
+                    #     affinity = 100
+                    # # elif isinstance(self, furniture_sprites.Table):  # TODO: FOR DEBUG
+                    # #     affinity = 0
+                    # else:
+                    #     affinity = 1
+                    affinity = 1
 
-                fitness = (distance_diff + angle_diff) * affinity
-                if rule_required:  # Always immediately add it if required
-                    fit_sum += fitness
-                else:  # Add it to optional rules
-                    optional_rules_fitness.append(fitness)
+                    fitness = (distance_diff + angle_diff) * affinity
+                    if rule_required and re.search(r"[><=]", str(distances_desired[2])):  # Always immediately add it if required
+                        fit_sum += fitness
+                    else:  # Add it to optional rules
+                        nearest_object = min(rule_instance, key=lambda x: x[2][1])
+                        if rule_obj == nearest_object:
+                            optional_rules_fitness.append(fitness)
 
-                # fit_sum += fitness
-                # fit_sum += angle_diff
+                    # fit_sum += fitness
+                    # fit_sum += angle_diff
         if optional_rules_fitness:  # sum of all required rules + minimum of optional rules
             fit_sum += min(optional_rules_fitness)
         return fit_sum

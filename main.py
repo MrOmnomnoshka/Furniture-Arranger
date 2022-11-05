@@ -1,19 +1,23 @@
-from random import randrange
+from random import uniform
+
+import furniture_sprites
 from GA_furniture import start_ga, set_sprite_values
 from time import time
 
 import settings
-from furniture_sprites import *
+from room_parts import Wall, Door, Window
 from draw_engine import draw_loop
 import room_rules
 
 
 def generate_room_parameters(room_size, accuracy=2):
-    multiplier = 10 ** accuracy  # accuracy = 2  # how many decimal places to round to
-    min_size = 3  # from 3m
-    max_size = room_size // 3  # to half of a room size
-    width = randrange(min_size * multiplier, max_size * multiplier) / multiplier
+    sqr_root_size = room_size ** 0.5
+    min_size_percentage = 0.50
+    min_size = sqr_root_size / (2 - min_size_percentage)  # from half sqr root to 0.2 of a half of a root
+    max_size = sqr_root_size  # to sqr root of a room size
+    width = round(uniform(min_size, max_size), accuracy)
     height = round(room_size/width, accuracy)
+    width, height = max(width, height), min(width, height)
     return int(width*100), int(height*100)  # , depth=250?
 
 
@@ -105,6 +109,7 @@ def generate_room():
 
     # generate door 90cm
     door = generate_object_in_walls(Door, 90, walls)
+    # door2 = generate_object_in_walls(Door, 90, walls)
 
     # generate window # 170cm
     window = generate_object_in_walls(Window, 170, walls)
@@ -114,63 +119,9 @@ def generate_room():
     return [door, window] + walls
 
 
-def generate_furniture():
-    furniture_obj = list()
-
-    # ==================== FURNITURE ====================
-    # args: width, height, depth, angle, x, y, z
-
-    # generate tv # 65"(144x81x15cm)    55"(122x69x10cm)
-    furniture_obj.append(TV(144, 15, 81, 0, 650, 15, 120))
-
-    """
-    # generate sofa # 180x86x87
-    furniture_obj.append(Sofa(180, 86, 87, 180, 650, 273))
-
-    # generate coffee table # 120x70x43
-    furniture_obj.append(CoffeeTable(120, 70, 43, 0, 650, 163))
-
-    # generate armchair # 91x84x87
-    furniture_obj.append(Armchair(91, 84, 87, 135, 264, 527))
-
-    # generate big carpet # 128x88
-    furniture_obj.append(CarpetBig(230, 160, 0, 180, 650, 180))
-
-    # generate Computer table # 136x60
-    furniture_obj.append(ComputerTable(136, 60, 180, 150, 560))
-
-    # generate Computer Chair # 43x42
-    furniture_obj.append(ComputerChair(48, 52, 0, 150, 504))
-
-    # generate nightstand # 41x41
-    furniture_obj.append(Nightstand(60, 50, 180, 770, 273))
-
-    # generate dresser # 110x50
-    furniture_obj.append(Dresser(106, 60, 90, 40, 218))
-
-    # # generate floor lamp # 30x30
-    furniture_obj.append(FloorLamp(40, 40, 180, 540, 273))
-    furniture_obj.append(FloorLamp(40, 40, 180, 540, 273))
-
-    # generate table# 170x65
-    furniture_obj.append(Table(160, 90, 0, 420, 450))
-
-    # # generate chair # 43x42
-    furniture_obj.append(KitchenChair(48, 52, 0, 420, 365))
-    furniture_obj.append(KitchenChair(48, 52, 180, 420, 540))
-    furniture_obj.append(KitchenChair(48, 52, 270, 536, 450))
-    """  # """
-
-    # # Test object without image
-    # furniture_obj.append(SpriteObject(135, 30, 45))
-
-    return furniture_obj
-
-
 def set_room_params(room_size_sqm):
     if settings.GENERATE_RANDOM_ROOM:
-        w, h = generate_room_parameters(room_size_sqm)
-        settings.ROOM_WIDTH, settings.ROOM_HEIGHT = max([w, h]), min([w, h])
+        settings.ROOM_WIDTH, settings.ROOM_HEIGHT = generate_room_parameters(room_size_sqm)
     else:
         settings.ROOM_WIDTH, settings.ROOM_HEIGHT = settings.ROOM_WIDTH, settings.ROOM_HEIGHT
 
@@ -184,21 +135,21 @@ def set_room_params(room_size_sqm):
 def main():
     # debug_func()
     # room_size_sqm = float(input("Enter room size in sq meters: "))
-    room_size_sqm = 24.9
+    room_size_sqm = 24.9  # 32
 
     for amount in range(settings.MAIN_ITERATIONS):
         set_room_params(room_size_sqm)
-
-
-        # furniture_obj = generate_furniture()
-        # furniture_obj = room_rules.get_bedroom_guest_17__24_9m()
-        # furniture_obj = room_rules.get_bedroom_master_17__24_9m()
-        furniture_obj = room_rules.living_room_9__15m()
 
         rooms_obj = generate_room()
         settings.ALL_OBJECTS = rooms_obj
         settings.FURNITURE_OBJECTS = list()
         settings.SPRITE_ORDER = list()
+
+        # furniture_obj = room_rules.generate_furniture()
+        # furniture_obj = room_rules.get_bedroom_guest_17__24_9m()
+        # furniture_obj = room_rules.get_bedroom_master_17__24_9m()
+        # furniture_obj = room_rules.living_room_9__15m()
+        furniture_obj = [furniture_sprites.DoubleBed(), furniture_sprites.Wardrobe()]
 
         start_time = time()
         for i, f_obj in enumerate(furniture_obj):

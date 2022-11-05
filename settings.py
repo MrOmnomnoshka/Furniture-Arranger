@@ -1,41 +1,43 @@
 # window size
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
+SCREEN_WIDTH = 1280  # Ширина экрана
+SCREEN_HEIGHT = 720  # Высота экрана
 
 # room size
-GENERATE_RANDOM_ROOM = True
-ROOM_WIDTH = 800
-ROOM_HEIGHT = 600
-ROOM_SQUARE = ROOM_WIDTH * ROOM_HEIGHT
-ROOM_DEPTH = 270
-WALLS_WIDTH = 10
-SCALE = 1
+GENERATE_RANDOM_ROOM = True  # Генерировать случайную комнату или по заданным ниже параметрам?
+ROOM_WIDTH = 800  # Длина комнаты
+ROOM_HEIGHT = 600  # Ширина комнаты
+ROOM_DEPTH = 270  # Высота комнаты
+WALLS_WIDTH = 10  # Толщина стен
+SCALE = 1  # Масштаб отрисовки
 
 # How many times generate room with furniture objects
-MAIN_ITERATIONS = 5
+MAIN_ITERATIONS = 5  # Количество различных генераций комнаты с мебелью
 
-# COLLISION_PENALTY
-COLLISION_PENALTY = 100_000_000
-
-# controls
-X_OFFSET = (SCREEN_WIDTH - ROOM_WIDTH) // 2
-Y_OFFSET = (SCREEN_HEIGHT - ROOM_HEIGHT) // 2
-DEBUG = False
-S_DEBUG = False
-START_GA = True
-DEBUG_EVERY_N = True
-FPS_IN_EVERY_N = 18
-STOP_WHEN_REACHED = 1.1
-
-# for pygame draw
-FONT, CLOCK, SCREEN = None, None, None
-ALL_OBJECTS, FURNITURE_OBJECTS, SPRITE_ORDER = list(), list(), list()
-CURRENT_GA_SPRITE = None
+# Controls
+DEBUG = True  # Включить отладочный режим
+H_DEBUG = False
+START_GA = False  # Запускать генетический алгоритм или нет
+DRAW_EVERY_N = True  # Рисовать каждую N-ую итерацию
+FPS_IN_EVERY_N = 18  # Скорость отрисовки каждой N-ой итерации в секунду
+STOP_WHEN_REACHED = 1.1  # Остановиться, когда достигнута эта оценка
 
 # For GA
-MAX_NUM_ITERATION = 600
-POPULATION_SIZE = 100
-MAX_ITERATION_WITHOUT_IMPROV = 200
-MUTATION_PROBABILITY = 0.50     # default 0.1 = 10%
-PARENTS_PORTION = 0.05          # default 0.30 = 30%
-ELIT_RATIO = PARENTS_PORTION    # default 0.01 = 1%
+MAX_NUM_ITERATION = 600  # Максимальное количество итераций
+POPULATION_SIZE = 100  # Размер популяции
+MAX_ITERATION_WITHOUT_IMPROV = 200  # Максимальное количество итераций без улучшения
+MUTATION_PROBABILITY = 0.50  # Вероятность мутации
+PARENTS_PORTION = 0.15  # Доля родителей в популяции
+ELIT_RATIO = PARENTS_PORTION - 0.01  # Доля элитных особей в популяции
+
+#  #### DO NOT CHANGE ####
+ROOM_SQUARE = ROOM_WIDTH * ROOM_HEIGHT  # Площадь комнаты
+#   COLLISION_PENALTY
+COLLISION_PENALTY = 100_000_000  # Штраф за столкновение
+#   controls
+X_OFFSET = (SCREEN_WIDTH - ROOM_WIDTH) // 2  # Смещение по X
+Y_OFFSET = (SCREEN_HEIGHT - ROOM_HEIGHT) // 2  # Смещение по Y
+#   for pygame draw
+FONT, CLOCK, SCREEN = None, None, None  # Шрифт, часы, экран
+ALL_OBJECTS, FURNITURE_OBJECTS, SPRITE_ORDER = list(), list(), list()  # Все объекты, объекты мебели, порядок отрисовки
+CURRENT_GA_SPRITE = None  # Текущий спрайт для GA
+#  #### DO NOT CHANGE ####

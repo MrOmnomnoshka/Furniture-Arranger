@@ -1,4 +1,3 @@
-import furniture_sprites
 import settings
 from colors import rand_color
 import pygame
@@ -18,15 +17,18 @@ class SpriteObject(pygame.sprite.Sprite):
 
     original_image = None  # Every sprite has its own image
 
-    def __init__(self, width, height, depth, angle=0, x=0, y=0, z=0, optional=False):  # TODO: need xyz here|'set_pos'?
+    def __init__(self, width=50, height=50, depth=50, angle=0, x=0, y=0, z=0, optional=False):  # TODO: need xyz here|'set_pos'?
         pygame.sprite.Sprite.__init__(self)
 
-        self.width = width
-        self.height = height
-        self.depth = depth
+        if not hasattr(self, "width"):
+            self.width = width  # TODO: add possibility to change standard width/height/depth
+            self.height = height
+            self.depth = depth
+        if not hasattr(self, "z"):
+            self.z = depth // 2 + z
+
         self.angle = angle
         self.x, self.y = x, y
-        self.z = depth // 2 + z
         self.optional = optional
 
         self.original_image = self.load_and_scale_image()
@@ -42,7 +44,7 @@ class SpriteObject(pygame.sprite.Sprite):
         tl_scale_offset = (Vector2(self.rect.topleft) + Vector2(settings.X_OFFSET, settings.Y_OFFSET)) * settings.SCALE
         self.rect_to_draw = self.image_to_draw.get_rect(topleft=tl_scale_offset)
 
-        self.rect_rotated_rules_dict = dict()
+        self.rect_rotated_rules = list()
 
     def update(self):
         # self.rect.clamp_ip(0, 0, settings.ROOM_WIDTH, settings.ROOM_HEIGHT)  # TODO:if room not a rect - need clamp?
@@ -98,7 +100,7 @@ class SpriteObject(pygame.sprite.Sprite):
     #     print(f"Deleted {self.__class__.__name__}")
 
     def get_other_rect_from_rule(self, other_sprite, other_sides, desired_dist):
-        if other_sprite not in self.rect_rotated_rules_dict:  # TODO: in real time other_sprite pos/angle can be changed
+        if not any(other_sprite in rule_sprite for rule_sprite in self.rect_rotated_rules):# or True:  # TODO: in real time other_sprite pos/angle can be changed
             other_rect = [Vector2(point) for point in other_sprite.get_rect_angle()]
 
             # Append imaginary dist to all sides
@@ -112,8 +114,12 @@ class SpriteObject(pygame.sprite.Sprite):
                             if point == side_point:
                                 other_rect[j] = new_other_side_vec[i]
                                 break
-            self.rect_rotated_rules_dict.update({other_sprite: other_rect})
-        return self.rect_rotated_rules_dict[other_sprite]
+            # return other_rect
+            self.rect_rotated_rules.append((other_sprite, other_rect))
+        for sprite_rule in self.rect_rotated_rules:
+            if sprite_rule[0] == other_sprite:
+                return sprite_rule[1]
+        # return [other_sprite in rule_sprite for rule_sprite in enumerate(self.rect_rotated_rules)]
 
     def rule_distance_to_sprite(self, other_sprite, rule):
         self_sides, other_sides, desired_dist_str = rule["sides"]
