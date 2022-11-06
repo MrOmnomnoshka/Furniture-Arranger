@@ -11,8 +11,11 @@ class DoubleBed(Furniture):
 
 
 class SingleBed(Furniture):
-    # width, height, depth = 120, 150, 60
+    width, height, depth = 100, 200, 60
     image_path = "images/furniture/single_bed.png"
+
+    rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}  # TODO: common class for beds?
+    offsets_to_this = {"top": 0, "bottom": 50, "left": 20, "right": 20}
 
 
 class Dresser(Furniture):
@@ -34,7 +37,7 @@ class ComputerTable(Furniture):
     image_path = "images/furniture/computer table.png"
 
     rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
-                     #DoubleBed: {"sides": ("any", "any", ">30"), "angle": "any"}}
+    offsets_to_this = {"bottom": 50, "left": 20, "right": 20}
 
 
 class Armchair(Furniture):
@@ -43,12 +46,11 @@ class Armchair(Furniture):
     image_path = "images/furniture/armchair.png"
 
     rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
-                     #DoubleBed: {"sides": ("any", "any", ">30"), "angle": "any"}}
     # Sofa: {"sides": ("midlr", "midlr", 0), "angle": 45}}  # TODO: add 45 angle to side and -45 to other side
 
 
 class TV(Furniture):
-    width, height, depth, z = 144, 15, 81, 60  # TODO: z value was: 120
+    width, height, depth, z = 144, 15, 81, 120
     image_path = "images/furniture/tv.png"
 
     rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
@@ -97,12 +99,11 @@ class CoffeeTable(Furniture):
     width, height, depth = 118, 62, 45
     image_path = "images/furniture/coffee_table.png"
 
-    rules_to_this = {Sofa: {"sides": ("midbottom", "midbottom", 20), "angle": 180},
-                     Window: None}
+    rules_to_this = {Sofa: {"sides": ("midbottom", "midbottom", 20), "angle": 180}}
 
 
 class Curtains(Furniture):
-    width, height, depth = 170, 20, 200
+    width, height, depth = 170, 20, 240
     image_path = "images/furniture/curtains.png"
 
     rules_to_this = {Window: {"sides": ("midtop", "midbottom", 0), "angle": 0}}
@@ -113,8 +114,7 @@ class Nightstand(Furniture):
     image_path = "images/furniture/nightstand.png"
 
     rules_to_this = {Sofa: {"sides": ("midlr", "midlr", 0), "angle": 0},
-                     DoubleBed: {"sides": ("top", "top", 0), "angle": 0},
-                     Window: None}
+                     DoubleBed: {"sides": ("top", "top", 0), "angle": 0}}
 
 
 class TableLamp(Furniture):
@@ -134,13 +134,12 @@ class Wardrobe(Furniture):
     image_path = "images/furniture/wardrobe.png"
 
     rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
-                     #DoubleBed: {"sides": ("any", "any", ">30"), "angle": "any"}}
+    offsets_to_this = {"bottom": 40, "left": 20, "right": 20}
 
 
 class CarpetBig(Furniture):
-    width, height, depth, z = 230, 160, 1, 0  # TODO: need to pass z here?
+    width, height, depth = 230, 160, 1
     image_path = "images/furniture/carpet_big.png"
 
     rules_to_this = {Sofa: {"sides": ("center", "midbottom", 60), "angle": 180},
-                     DoubleBed: {"sides": ("midbottom", "midbottom", 30), "angle": 0},
-                     Window: None, Door: None}
+                     DoubleBed: {"sides": ("midbottom", "midbottom", 30), "angle": 0}}

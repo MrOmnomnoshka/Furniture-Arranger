@@ -14,12 +14,13 @@ SCALE = 1  # Масштаб отрисовки
 MAIN_ITERATIONS = 5  # Количество различных генераций комнаты с мебелью
 
 # Controls
-DEBUG = True  # Включить отладочный режим
+DEBUG = False  # Включить отладочный режим
 H_DEBUG = False
 START_GA = False  # Запускать генетический алгоритм или нет
 DRAW_EVERY_N = True  # Рисовать каждую N-ую итерацию
 FPS_IN_EVERY_N = 18  # Скорость отрисовки каждой N-ой итерации в секунду
 STOP_WHEN_REACHED = 1.1  # Остановиться, когда достигнута эта оценка
+LANGUAGE = "EN"  #RU  # Язык интерфейса
 
 # For GA
 MAX_NUM_ITERATION = 600  # Максимальное количество итераций
@@ -38,6 +39,7 @@ X_OFFSET = (SCREEN_WIDTH - ROOM_WIDTH) // 2  # Смещение по X
 Y_OFFSET = (SCREEN_HEIGHT - ROOM_HEIGHT) // 2  # Смещение по Y
 #   for pygame draw
 FONT, CLOCK, SCREEN = None, None, None  # Шрифт, часы, экран
-ALL_OBJECTS, FURNITURE_OBJECTS, SPRITE_ORDER = list(), list(), list()  # Все объекты, объекты мебели, порядок отрисовки
+ALL_OBJECTS, SPRITE_ORDER = list(), list()  # Все объекты, порядок отрисовки
 CURRENT_GA_SPRITE = None  # Текущий спрайт для GA
+MOUSE_MOVING_SPRITE = None  # Текущий спрайт для перемещения мышкой (для отладки)
 #  #### DO NOT CHANGE ####

@@ -5,7 +5,7 @@ def get_bedroom_guest_17__24_9m():
     furniture_obj = list()
 
     # generate curtains 170x20
-    furniture_obj.append(Curtains(z=70))
+    furniture_obj.append(Curtains(z=20))
 
     # generate double bed 160x200x60
     furniture_obj.append(DoubleBed())

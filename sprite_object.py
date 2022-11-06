@@ -18,6 +18,8 @@ class SpriteObject(pygame.sprite.Sprite):
 
     original_image = None  # Every sprite has its own image
 
+    mouse_diff = Vector2(0, 0)  # for sprite moving with mouse
+
     def __init__(self, width=50, height=50, depth=50, angle=0, x=0, y=0, z=0, optional=False):  # TODO: need xyz here or just in 'set_pos'?
         pygame.sprite.Sprite.__init__(self)
 
@@ -26,7 +28,7 @@ class SpriteObject(pygame.sprite.Sprite):
         self.set_unique_params(width, height, depth)  # set rules, margins and (width, height, depth) parameters
 
         if not hasattr(self, "z"):
-            self.z = depth // 2 + z
+            self.z = self.depth // 2 + z
 
         self.angle = angle
         self.x, self.y = x, y
@@ -112,6 +114,7 @@ class SpriteObject(pygame.sprite.Sprite):
 
     # def __del__(self):
     #     print(f"Deleted {self.__class__.__name__}")
+
     def calc_offset_rotated_rect(self, rotated_rect):
         # Copy of rotated rect to make some changes in it
         rotated_rect_copy = [Vector2(point) for point in rotated_rect]
@@ -239,7 +242,7 @@ class SpriteObject(pygame.sprite.Sprite):
             self.rotated_rect = rect_angle  # Replace it with new one
 
             # change offset rotated rect
-            self.calc_offset_rotated_rect(rect_angle)
+            self.calc_offset_rotated_rect(rect_angle)  # TODO: Comment this will work faster
 
         return self.rotated_rect
 
@@ -264,3 +267,15 @@ class SpriteObject(pygame.sprite.Sprite):
     def __str__(self):
         return f"{self.__class__.__name__} - angle: {self.angle}" \
                f", x: {self.rect.centerx}, y: {self.rect.centery}, z: {self.z}"
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def coordinates(self):
+        return f"{self.rect.centerx}, {self.rect.centery}, {self.z}"
+
+    @property
+    def parameters(self):
+        return f"{self.width}x{self.height}x{self.depth}"

@@ -5,6 +5,7 @@ from pygame.math import Vector2
 from colors import *
 from furniture import Furniture
 from room_parts import Wall, Door, Window
+import translate
 
 
 def init_pygame(frame_name):
@@ -29,35 +30,40 @@ def init_pygame(frame_name):
 
 
 def print_furniture_sprites_info():
-    for sprite in settings.FURNITURE_OBJECTS:
-        print(sprite)
+    print(" All furniture info ".center(60, "="))
+
+    for sprite in settings.ALL_OBJECTS:
+        if isinstance(sprite, Furniture):
+            print(sprite, "fitness:", sprite.get_fitness())
 
 
 def change_furniture_attr(attr):
-    sprite = get_hovered_sprite()
+    sprite = get_hovered_furniture()
     if sprite:  # if sprite exists
         if getattr(Furniture, attr) == sprite:  # It was me?
             setattr(Furniture, attr, None)  # Turn me off
         else:  # It is not me
             setattr(Furniture, attr, sprite)  # Make this sprite active
+    else:  # Just in some free space
+        setattr(Furniture, attr, None)  # Turn this attribute off
 
 
 def get_hovered_sprite_fitness():
-    sprite = Furniture.active if Furniture.active else get_hovered_sprite()
-
+    sprite = Furniture.active if Furniture.active else get_hovered_furniture()
     if sprite:
         print(sprite, "fitness:", sprite.get_fitness())
     return None
 
 
-def get_hovered_sprite():
+def get_hovered_furniture():
     hovered_sprites = list()
-    for sprite in settings.FURNITURE_OBJECTS:
-        if sprite.check_mouse_over_rotated(Vector2(pygame.mouse.get_pos()) / settings.SCALE):
-            hovered_sprites.append(sprite)
-            # return sprite
+    mouse_scaled = Vector2(pygame.mouse.get_pos()) / settings.SCALE
+    for sprite in settings.ALL_OBJECTS:
+        if isinstance(sprite, Furniture):
+            if sprite.check_mouse_over_rotated(mouse_scaled):
+                hovered_sprites.append(sprite)
     if hovered_sprites:
-        return sorted(hovered_sprites, key=lambda s: s.z)[-1]  # return the highest z-index sprite
+        return sorted(hovered_sprites, key=lambda s: s.z + s.depth)[-1]  # return the highest z-index sprite
     return None
 
 
@@ -84,41 +90,65 @@ def zoom_to_mouse(scroll, shift):
 
 
 def move_active_furniture():
-    if Furniture.active:
-        # mouse key down
-        mouse_keys = pygame.mouse.get_pressed()
-        shift_pressed = pygame.key.get_mods() & pygame.KMOD_SHIFT
-        if mouse_keys[0]:  # lmb
-            Furniture.active.rotate(1 + 2 * shift_pressed)
-        elif mouse_keys[2]:  # rmb
-            Furniture.active.rotate(-1 - 2 * shift_pressed)
-
-        Furniture.active.rect.center = get_mouse_offset()
+    pass
+    # if Furniture.active:
+    #     Furniture.active.rect.center = get_mouse_offset()
+    # sprite = get_hovered_furniture()
+    # if isinstance(sprite, Furniture):
+    #     mouse_keys = pygame.mouse.get_pressed()
+    #     if mouse_keys[0]:  # lmb
+    #         sprite.rect.center = get_mouse_offset()
 
 
 def event_handling():
-    move_step = 25 // settings.SCALE  # TODO: screen movement from mouse
     done = False
 
-    move_active_furniture()
+    # move_active_furniture()
+    if not Furniture.active:
+        move_screen()
 
     for event in pygame.event.get():
+        shift_mod_pressed = pygame.key.get_mods() & pygame.KMOD_SHIFT
         if event.type == pygame.QUIT:
             program_exit()
         elif event.type == pygame.MOUSEWHEEL:
-            key_mods = pygame.key.get_mods()
-            zoom_to_mouse(event.y, key_mods & pygame.KMOD_SHIFT)  # or just regular pygame.SHIFT
+            # rotate sprite
+            if Furniture.active and get_hovered_furniture():
+                rotate_step = 15 if shift_mod_pressed else 1
+                Furniture.active.rotate(rotate_step * event.y)
+            # camera zoom to mouse
+            else:
+                zoom_to_mouse(event.y, shift_mod_pressed)
+        # ==== LMB DOWN ==== #
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            sprite = get_hovered_furniture()
+            if sprite:
+                # change it is difference to mouse
+                sprite.mouse_diff = Vector2(get_mouse_offset()) - Vector2(sprite.rect.center)
+                settings.MOUSE_MOVING_SPRITE = sprite
+        # ==== LMB UP ==== #
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            settings.MOUSE_MOVING_SPRITE = None
+        elif pygame.mouse.get_pressed()[0] and shift_mod_pressed:  # lmb + shift
+            if event.type == pygame.MOUSEMOTION:
+                settings.X_OFFSET += event.rel[0] / settings.SCALE
+                settings.Y_OFFSET += event.rel[1] / settings.SCALE
+        elif pygame.mouse.get_pressed()[0]:  # LMB pressed
+            if settings.MOUSE_MOVING_SPRITE:
+                a = [(p / settings.SCALE - o - d) for p, o, d in zip(pygame.mouse.get_pos(),
+                                                                     (settings.X_OFFSET, settings.Y_OFFSET),
+                                                                     settings.MOUSE_MOVING_SPRITE.mouse_diff)]
+                settings.MOUSE_MOVING_SPRITE.rect.center = a
         elif event.type == pygame.FINGERMOTION:  # FOR TouchScreens (Android OS)
             settings.DEBUG = not settings.DEBUG
-
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE and (event.mod & pygame.KMOD_SHIFT):
+            if event.key == pygame.K_ESCAPE and shift_mod_pressed:
                 program_exit()  # Exit for program
             elif event.key == pygame.K_ESCAPE:
                 done = True  # Exit for current iteration
             elif event.key == pygame.K_i:
                 print_furniture_sprites_info()
-            elif event.key == pygame.K_d and (event.mod & pygame.KMOD_SHIFT):
+            elif event.key == pygame.K_d and shift_mod_pressed:
                 settings.DEBUG = not settings.DEBUG
             elif event.key == pygame.K_f:
                 get_hovered_sprite_fitness()
@@ -128,25 +158,46 @@ def event_handling():
             elif event.key == pygame.K_n:
                 settings.DRAW_EVERY_N = not settings.DRAW_EVERY_N
             elif event.key == pygame.K_SPACE:
-                if Furniture.active:
-                    Furniture.active = None
-                else:
-                    change_furniture_attr("active")
+                change_furniture_attr("active")
             elif event.key == pygame.K_l:
                 change_furniture_attr("show_distances")
-            elif event.key in (pygame.K_LEFT, pygame.K_a):
-                settings.X_OFFSET -= move_step
-            elif event.key in (pygame.K_RIGHT, pygame.K_d):
-                settings.X_OFFSET += move_step
-            elif event.key in (pygame.K_UP, pygame.K_w):
-                settings.Y_OFFSET -= move_step
-            elif event.key in (pygame.K_DOWN, pygame.K_s):
-                settings.Y_OFFSET += move_step
             elif event.key == pygame.K_r:
                 settings.SCALE = 1
                 settings.X_OFFSET = (settings.SCREEN_WIDTH - settings.ROOM_WIDTH) // 2
                 settings.Y_OFFSET = (settings.SCREEN_HEIGHT - settings.ROOM_HEIGHT) // 2
+            move_furniture_or_screen(event.key)
     return done
+
+
+def translate_2_to_1(value):
+    """ [-2, -1, '1', 2] // 2 = [-1, -1, '0', 1]     || '1'-'0' - special if case """
+    return value // 2 if value != 1 else 1
+
+
+def move_screen():
+    move_step = 5 / settings.SCALE
+    keys = pygame.key.get_pressed()
+
+    lr = translate_2_to_1(keys[pygame.K_LEFT] - keys[pygame.K_RIGHT] + keys[pygame.K_a] - keys[pygame.K_d])
+    ud = translate_2_to_1(keys[pygame.K_UP] - keys[pygame.K_DOWN] + keys[pygame.K_w] - keys[pygame.K_s])
+
+    settings.X_OFFSET += lr * move_step
+    settings.Y_OFFSET += ud * move_step
+
+
+def move_furniture_or_screen(key):
+    if key in (pygame.K_LEFT, pygame.K_a):
+        if Furniture.active:
+            Furniture.active.rect.x -= 1
+    elif key in (pygame.K_RIGHT, pygame.K_d):
+        if Furniture.active:
+            Furniture.active.rect.x += 1
+    elif key in (pygame.K_UP, pygame.K_w):
+        if Furniture.active:
+            Furniture.active.rect.y -= 1
+    elif key in (pygame.K_DOWN, pygame.K_s):
+        if Furniture.active:
+            Furniture.active.rect.y += 1
 
 
 def add_offset_to_position(position):
@@ -162,6 +213,7 @@ def add_offset_to_position(position):
 
 def draw_all(draw_bg=True):
     font, all_sprites, clock, screen = settings.FONT, settings.ALL_OBJECTS, settings.CLOCK, settings.SCREEN
+    lang = getattr(translate, settings.LANGUAGE)
 
     if draw_bg:
         screen.fill(white_dark)
@@ -182,9 +234,14 @@ def draw_all(draw_bg=True):
     #         for other_sprite in settings.ALL_OBJECTS:
     #             sprite.solve_collisions(other_sprite)
 
+    draw_width = max(1, round(2 * settings.SCALE))
     if settings.DEBUG:
-        draw_width = max(1, round(2 * settings.SCALE))
         for sprite in all_sprites:
+
+            # # Draw diff point from rect center to mouse diff
+            # if isinstance(sprite, Furniture):
+            #     pos = add_offset_to_position(sprite.rect.center + sprite.mouse_diff)
+            #     pygame.draw.circle(screen, red, pos, draw_width*2)
 
             # # draw RED rectangle around the image
             # rect = add_offset_to_position(Vector2(sprite.rect.topleft)), sprite.image.get_size()
@@ -234,13 +291,34 @@ def draw_all(draw_bg=True):
 
     # ======= Left up corner info =======
     # Show FPS
-    fps = font.render(f"FPS: {int(clock.get_fps())}", True, magenta)
+    fps = font.render(f"{lang['fps']}: {int(clock.get_fps())}", True, magenta)
     screen.blit(fps, (10, 10))
 
     # Show scaled mouse pos
-    pos_scaled = [int(p) for p in get_mouse_offset()]
-    mouse_pos = font.render(f"Mouse x,y: {str(pos_scaled)}", True, magenta)
+    pos_scaled = ','.join([str(int(p)) for p in get_mouse_offset()])
+    mouse_pos = font.render(f"{lang['mouse_pos']}: {pos_scaled}", True, magenta)
     screen.blit(mouse_pos, (10, 40))
+
+    if Furniture.active:
+        sprite = Furniture.active
+        active = font.render(f"Active: {sprite.name}", True, cyan)
+        screen.blit(active, (10, 70))
+
+        # Show active sprite x,y,z
+        xyz = font.render(f"   XYZ: {sprite.coordinates}", True, cyan)
+        screen.blit(xyz, (10, 100))
+
+        # Show active sprite parameters
+        params = font.render(f"   Params: {sprite.parameters}", True, cyan)
+        screen.blit(params, (10, 130))
+
+        # Show active sprite angle
+        angle = font.render(f"   Angle: {sprite.angle}", True, cyan)
+        screen.blit(angle, (10, 160))
+
+        # Draw cyan rect around active sprite
+        pts = add_offset_to_position(Furniture.active.get_rotated_rect())
+        pygame.draw.lines(screen, cyan, True, pts, draw_width)
 
     # =======  Right up corner info =======
     # show room width
@@ -313,37 +391,3 @@ def draw_loop(frame_name):
         # clock tick
         settings.CLOCK.tick(60)
     pygame.quit()
-
-
-def debug_func():
-    # ==================== DEBUG ====================
-    init_pygame("DEBUG")
-
-    # # find TV in sprites
-    # for sprite in settings.ALL_SPRITES:
-    #     if isinstance(sprite, TV):
-    #         tv_obj = sprite
-
-    # main loop
-    done = False
-    while not done:
-        done = event_handling()
-
-        draw_all()
-
-        # settings.ALL_SPRITES.update()
-
-        # for sprite in settings.ALL_SPRITES:
-        #     draw_all(font, display_surface, settings.ALL_SPRITES, clock)
-        #
-        #     if settings.COLLISIONS:
-        #         tv_obj.solve_collisions(sprite)#, draw_all, font, display_surface, settings.ALL_SPRITES, clock)
-        #
-        #     draw_all(font, display_surface, settings.ALL_SPRITES, clock)
-
-        # clock tick
-        settings.CLOCK.tick(60)
-
-    pygame.quit()
-    # exit()
-    # ==================== DEBUG ====================

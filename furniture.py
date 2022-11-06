@@ -10,63 +10,30 @@ class Furniture(SpriteObject):
     active = False
     show_distances = False
 
-    # rules_to_all_furniture = {room_parts.Door: {"sides": ("any", "bottom", ">110"), "angle": "any", "required": True},  # TODO: для двери сделать пермещение вниз на целое число и влево на половину этого числа ( если петли стоят слева и дверь вдруг открывется на все 180 градусов)
-    #                           room_parts.Window: {"sides": ("any", "bottom", ">75"), "angle": "any", "required": True}}  # TODO: can't ues furniture_sprites, mb add more classes
-    #                           #furniture_sprites.TV: {"sides": ("any", "bottom", ">60"), "angle": "any", "required": True}}
-
-    # def __init__(self, *args, **kwargs):
-    #     self.rules = self.rules_to_all_furniture.copy()
-    #     if hasattr(self, "rules_to_this_furniture"):
-    #         self.rules.update(self.rules_to_this_furniture)
-    #     if hasattr(self, "margins_to_this"):
-    #         self.margins.update(self.margins_to_this)
-    #
-    #     super().__init__(*args, **kwargs)
-
     # def update(self):
     #     super().update()
 
     def get_intersections(self, sprite):
-        # Special case for zero-depth objects (like carpets)
-        if not isinstance(sprite, room_parts.Wall) and self.depth <= 1 or sprite.depth <= 1:
-            return False  # Object with zero depth can't intersect with other objects (except Walls)
-
-        intersection = None
         if sprite != self and self.rect.colliderect(sprite.rect):
-            self_pts, sprite_pts = self.get_rotated_rect(), sprite.get_rotated_rect()
-
-            # TODO: remake with math2d module: 'get_rotated_rect_intersections(rect_1, rect_2)'
-
-            # Check for lines intersection
-            line_intersections = get_line_intersection(self_pts, sprite_pts)
-            if line_intersections:  # Collides in some edges (2 or 4)
-                intersection = "line", line_intersections
-
-            if not intersection:  # if no lines intersections, continue to check for points intersection
-                # Check for points intersection
-                pnts_inside = list()
-                for pnt in self_pts:
-                    if point_in_rect(pnt, sprite_pts):
-                        pnts_inside.append(pnt)
-                for pnt in sprite_pts:
-                    if point_in_rect(pnt, self_pts):
-                        pnts_inside.append(pnt)
-
-                if pnts_inside:  # Collide but one inside another
-                    intersection = "inside", pnts_inside
-
+            intersection = get_rotated_rect_intersections(self.get_rotated_rect(), sprite.get_rotated_rect())
             if intersection:  # if exists any intersection, check for depth intersection
-                # check for depth collisions
-                acceptable_diff = (self.depth + sprite.depth) // 2
-                current_diff = abs(self.z - sprite.z)
-                if current_diff >= acceptable_diff:
-                    if isinstance(sprite, room_parts.Wall):
-                        return "WALL", intersection
-                    return False  # exit without intersection
-                else:
-                    return "z intersection", acceptable_diff - current_diff
+                return self.check_for_depth_intersection(sprite)
 
         return False  # No collisions
+
+    def check_for_depth_intersection(self, sprite):
+        # Special case for zero-depth objects (like carpets)
+        if (self.depth <= 1 or sprite.depth <= 1) and not isinstance(sprite, room_parts.Wall):
+            return False  # Object with zero depth can't intersect with other objects (except Walls)
+
+        acceptable_diff = (self.depth + sprite.depth) // 2
+        current_diff = abs(self.z - sprite.z)
+        if current_diff >= acceptable_diff:
+            if isinstance(sprite, room_parts.Wall):
+                return True, "WALL intersection"
+            return False  # exit without intersection
+        else:
+            return True, "z intersection", acceptable_diff - current_diff
 
     def move_sprite(self, x, y):
         self.rect.x = x
@@ -201,10 +168,18 @@ class Furniture(SpriteObject):
                     return penalty
 
                 # Solve sprites offsets rules
-                me_in_sprite = get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect)
-                sprite_in_me = get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)
-                if me_in_sprite or sprite_in_me:
-                    return settings.COLLISION_PENALTY // 10000
+                # me_in_sprite = get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect)
+                # sprite_in_me = get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)
+                # depth_inter = self.check_for_depth_intersection(other_sprite)
+                # in_rules = isinstance(other_sprite, tuple(self.rules))
+                self.calc_offset_rotated_rect(self.get_rotated_rect())
+                other_sprite.calc_offset_rotated_rect(other_sprite.get_rotated_rect())
+                if self.check_for_depth_intersection(other_sprite) \
+                        and (get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect)
+                             or get_rotated_rect_intersections(other_sprite.get_rotated_rect(),
+                                                               self.offset_rotated_rect)) \
+                        and not isinstance(other_sprite, tuple(self.rules)):
+                    return settings.COLLISION_PENALTY // 30
 
         #  combine every instance by rule groups
         rule_group = []
@@ -253,12 +228,15 @@ class Furniture(SpriteObject):
                     affinity = 1
 
                     fitness = (distance_diff + angle_diff) * affinity
-                    if rule_required and re.search(r"[><=]", str(distances_desired[2])):  # Always immediately add it if required
+                    if rule_required and re.search(r"[><=]", str(distances_desired[2])):  # Always immediately add it if required  # TODO: not working like that?
                         fit_sum += fitness
                     else:  # Add it to optional rules
                         nearest_object = min(rule_instance, key=lambda x: x[2][1])
                         if rule_obj == nearest_object:
-                            optional_rules_fitness.append(fitness)
+                            if rule_required:  # TODO: refactor this
+                                fit_sum += fitness
+                            else:
+                                optional_rules_fitness.append(fitness)
 
                     # fit_sum += fitness
                     # fit_sum += angle_diff

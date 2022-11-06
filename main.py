@@ -132,32 +132,28 @@ def set_room_params(room_size_sqm):
 
 
 def main():
-    # debug_func()
     # room_size_sqm = float(input("Enter room size in sq meters: "))
-    room_size_sqm = 50  #  24.9  # 32
+    room_size_sqm = 32  #  24.9  # 32
 
     for amount in range(settings.MAIN_ITERATIONS):
         set_room_params(room_size_sqm)
 
         rooms_obj = generate_room()
         settings.ALL_OBJECTS = rooms_obj
-        settings.FURNITURE_OBJECTS = list()
         settings.SPRITE_ORDER = list()
 
-        # furniture_obj = room_rules.generate_furniture()
         # furniture_obj = room_rules.get_bedroom_guest_17__24_9m()
-        # furniture_obj = room_rules.get_bedroom_master_17__24_9m()
+        furniture_obj = room_rules.get_bedroom_master_17__24_9m()
         # furniture_obj = room_rules.living_room_9__15m()
-        furniture_obj = room_rules.all_furniture()
-        # furniture_obj = [furniture_sprites.DoubleBed()]
+        # furniture_obj = room_rules.all_furniture()
+        # furniture_obj = room_rules.generate_furniture()
+        # furniture_obj = [furniture_sprites.DoubleBed(x=200, y=200), furniture_sprites.Wardrobe(x=500, y=200)]
 
         start_time = time()
         for i, f_obj in enumerate(furniture_obj):
             if settings.START_GA:
-                obj_str = f" Now running: '{f_obj.__class__.__name__.upper()}' ({i + 1}/{len(furniture_obj)}) "
-                print(obj_str.center(50, "="))
+                print(f" Now running: '{f_obj.name.upper()}' ({i + 1}/{len(furniture_obj)}) ".center(60, "="))
             settings.ALL_OBJECTS.append(f_obj)
-            settings.FURNITURE_OBJECTS.append(f_obj)
             settings.CURRENT_GA_SPRITE = f_obj
 
             if settings.START_GA:
@@ -166,7 +162,6 @@ def main():
                 if f_obj.optional:
                     if solution.score > settings.STOP_WHEN_REACHED:
                         settings.ALL_OBJECTS.remove(f_obj)
-                        settings.FURNITURE_OBJECTS.remove(f_obj)
                         print("\nCan't place this optional obj:", f_obj, "\n")
                     else:  # all is OK
                         set_sprite_values(solution.variable)
