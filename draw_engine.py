@@ -5,6 +5,7 @@ from pygame.math import Vector2
 from colors import *
 from furniture import Furniture
 from room_parts import Wall, Door, Window
+from GA_furniture import set_sprite_values
 import translate
 
 
@@ -80,24 +81,14 @@ def get_mouse_offset():
 
 def zoom_to_mouse(scroll, shift):
     old_scale = settings.SCALE
-    settings.SCALE = max(0.2, round(settings.SCALE + scroll / (20 - 10 * shift), 3))
+    step = 5 if shift else 20
+    settings.SCALE = max(0.2, round(settings.SCALE + scroll / step, 3))
 
     mouse_pos = Vector2(pygame.mouse.get_pos())
     topleft = mouse_pos / settings.SCALE
     old_topleft = mouse_pos / old_scale
     difference = old_topleft - Vector2(settings.X_OFFSET, settings.Y_OFFSET)
     settings.X_OFFSET, settings.Y_OFFSET = topleft - difference
-
-
-def move_active_furniture():
-    pass
-    # if Furniture.active:
-    #     Furniture.active.rect.center = get_mouse_offset()
-    # sprite = get_hovered_furniture()
-    # if isinstance(sprite, Furniture):
-    #     mouse_keys = pygame.mouse.get_pressed()
-    #     if mouse_keys[0]:  # lmb
-    #         sprite.rect.center = get_mouse_offset()
 
 
 def event_handling():
@@ -148,7 +139,7 @@ def event_handling():
                 done = True  # Exit for current iteration
             elif event.key == pygame.K_i:
                 print_furniture_sprites_info()
-            elif event.key == pygame.K_d and shift_mod_pressed:
+            elif event.key == pygame.K_F1:
                 settings.DEBUG = not settings.DEBUG
             elif event.key == pygame.K_f:
                 get_hovered_sprite_fitness()
@@ -165,7 +156,7 @@ def event_handling():
                 settings.SCALE = 1
                 settings.X_OFFSET = (settings.SCREEN_WIDTH - settings.ROOM_WIDTH) // 2
                 settings.Y_OFFSET = (settings.SCREEN_HEIGHT - settings.ROOM_HEIGHT) // 2
-            move_furniture_or_screen(event.key)
+            set_furniture_precisely(event.key)
     return done
 
 
@@ -185,19 +176,20 @@ def move_screen():
     settings.Y_OFFSET += ud * move_step
 
 
-def move_furniture_or_screen(key):
-    if key in (pygame.K_LEFT, pygame.K_a):
-        if Furniture.active:
+def set_furniture_precisely(key):
+    if Furniture.active:
+        if key in (pygame.K_LEFT, pygame.K_a):
             Furniture.active.rect.x -= 1
-    elif key in (pygame.K_RIGHT, pygame.K_d):
-        if Furniture.active:
+        elif key in (pygame.K_RIGHT, pygame.K_d):
             Furniture.active.rect.x += 1
-    elif key in (pygame.K_UP, pygame.K_w):
-        if Furniture.active:
+        elif key in (pygame.K_UP, pygame.K_w):
             Furniture.active.rect.y -= 1
-    elif key in (pygame.K_DOWN, pygame.K_s):
-        if Furniture.active:
+        elif key in (pygame.K_DOWN, pygame.K_s):
             Furniture.active.rect.y += 1
+        elif key == pygame.K_q:
+            Furniture.active.rotate(1)
+        elif key == pygame.K_e:
+            Furniture.active.rotate(-1)
 
 
 def add_offset_to_position(position):
@@ -256,12 +248,16 @@ def draw_all(draw_bg=True):
             lines = add_offset_to_position([Vector2(sprite.rect.center), sprite.rect.center + arrow_vec])
             pygame.draw.lines(screen, red, True, lines, draw_width)
 
-            # Draw BLUE border of sprite offsets
-            #  if offset is not equal to sprite rect
+            # Draw BLUE border of sprite offsets (if offset is not equal to sprite rect)
             other_rect = sprite.offset_rotated_rect
-            if other_rect != sprite.get_rotated_rect():
+            if other_rect and other_rect != sprite.get_rotated_rect():
                 other_rect = add_offset_to_position(other_rect)
                 pygame.draw.lines(screen, blue, True, other_rect, draw_width)
+
+            # Draw BLUE border of distances ('>' '<') rules objects
+            for other_sprite, other_rect in sprite.rect_rotated_rules:
+                other_rect = add_offset_to_position(other_rect)
+                pygame.draw.lines(screen, dark_blue, True, other_rect, draw_width)
 
             # Draw BLUE distance lines from current sprite to other sprites
             if Furniture.show_distances == sprite:
@@ -316,6 +312,22 @@ def draw_all(draw_bg=True):
         angle = font.render(f"   Angle: {sprite.angle}", True, cyan)
         screen.blit(angle, (10, 160))
 
+        # Show active sprite fitness
+        sprite_fitness = sprite.get_fitness()
+        fitness = font.render(f"   Fitness: {sprite_fitness}", True, cyan)
+        screen.blit(fitness, (10, 190))
+
+        if sprite_fitness > 100_000:
+            # draw RED alpha rectangle around the image
+            s = pygame.Surface(sprite.scaled_original_image.get_size(), pygame.SRCALPHA)
+            s.fill(red + (100,))  # notice the alpha value in the color
+            screen.blit(pygame.transform.rotate(s, sprite.angle), sprite.rect_to_draw.topleft)
+        elif sprite_fitness <= settings.STOP_WHEN_REACHED:
+            # draw GREEN alpha rectangle around the image
+            s = pygame.Surface(sprite.scaled_original_image.get_size(), pygame.SRCALPHA)
+            s.fill(green + (100,))  # notice the alpha value in the color
+            screen.blit(pygame.transform.rotate(s, sprite.angle), sprite.rect_to_draw.topleft)
+
         # Draw cyan rect around active sprite
         pts = add_offset_to_position(Furniture.active.get_rotated_rect())
         pygame.draw.lines(screen, cyan, True, pts, draw_width)
@@ -343,7 +355,7 @@ def draw_all(draw_bg=True):
 
 
 def draw_every_generation(data):
-    if settings.DRAW_EVERY_N:
+    if settings.INIT_EVERY_N:
         if not pygame.get_init():
             init_pygame("draw_every_generation")
             settings.SCREEN.fill(white_dark)
@@ -357,22 +369,17 @@ def draw_every_generation(data):
         last_data = settings.FONT.render("Fitness: " + str(data["report_list"][-1]), True, magenta)
         settings.SCREEN.blit(last_data, (10, settings.SCREEN_HEIGHT - 60))
 
-        from GA_furniture import set_sprite_values
-        for obj_data in data.last_generation.variables:
-            set_sprite_values(obj_data)
-            settings.CURRENT_GA_SPRITE.draw(settings.SCREEN)
-
-        # settings.SCREEN.blit(pygame.transform.scale(
-        #     settings.DISPLAY_SURFACE,  # Screen with camera data
-        #     (settings.SCREEN_WIDTH * settings.SCALE, settings.SCREEN_HEIGHT * settings.SCALE)),  # Zoom screen
-        #     (settings.X_OFFSET, settings.Y_OFFSET))  # Move screen
+        if settings.DRAW_EVERY_N:
+            for obj_data in data.last_generation.variables:
+                set_sprite_values(obj_data)
+                settings.CURRENT_GA_SPRITE.draw(settings.SCREEN)
+        else:
+            set_sprite_values(data.last_generation.variables[0])
 
         draw_all(False)
         settings.SCREEN.fill(white_dark)
-
         settings.CLOCK.tick(settings.FPS_IN_EVERY_N)
 
-        # draw_all()  # JUST fill white color?
     if pygame.get_init():
         event_handling()
 

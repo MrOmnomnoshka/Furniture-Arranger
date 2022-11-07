@@ -54,7 +54,7 @@ def start_ga():
                dimension=3,  # *furniture_amount,
                variable_type='int',
                variable_boundaries=var_bound,  # *furniture_amount,
-               function_timeout=60 * 10,
+               function_timeout=60 * 20,
                algorithm_parameters=algorithm_param)
 
     # model.run()

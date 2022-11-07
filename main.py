@@ -133,7 +133,7 @@ def set_room_params(room_size_sqm):
 
 def main():
     # room_size_sqm = float(input("Enter room size in sq meters: "))
-    room_size_sqm = 32  #  24.9  # 32
+    room_size_sqm = 38  # 24.9  # 32
 
     for amount in range(settings.MAIN_ITERATIONS):
         set_room_params(room_size_sqm)

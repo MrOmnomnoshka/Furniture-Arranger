@@ -1,9 +1,10 @@
 from furniture import Furniture
 from room_parts import Wall, Door, Window
+# TODO: move all classes to other place, to be able to refer to each other
 
 
 class DoubleBed(Furniture):
-    width, height, depth = 160, 200, 60
+    width, height, depth = 160, 200, 100
     image_path = "images/furniture/double_bed.png"
 
     rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
@@ -30,14 +31,7 @@ class Table(Furniture):
     image_path = "images/furniture/table.png"
 
     rules_to_this = {Wall: {"sides": ("midtop", "bottom", 150), "angle": 0, "required": True}}
-
-
-class ComputerTable(Furniture):
-    width, height, depth = 136, 60, 75
-    image_path = "images/furniture/computer table.png"
-
-    rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
-    offsets_to_this = {"bottom": 50, "left": 20, "right": 20}
+    offsets_to_this = {"top": 60, "bottom": 60, "left": 60, "right": 60}
 
 
 class Armchair(Furniture):
@@ -50,11 +44,21 @@ class Armchair(Furniture):
 
 
 class TV(Furniture):
-    width, height, depth, z = 144, 15, 81, 120
+    width, height, depth, z = 144, 15, 81, 120  # 65"(144x15x81)cm  ||  55"(122x10x69)cm
     image_path = "images/furniture/tv.png"
 
     rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
                      DoubleBed: {"sides": ("midbottom", "midbottom", "any"), "angle": 180}}
+    # offsets_to_this = {"bottom": 100}
+
+
+class ComputerTable(Furniture):
+    width, height, depth = 136, 60, 75
+    image_path = "images/furniture/computer table.png"
+
+    rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
+                     TV: {"sides": ("any", "any", ">50"), "angle": "any"}}
+    offsets_to_this = {"bottom": 40, "left": 20, "right": 20}
 
 
 class Sofa(Furniture):
@@ -103,7 +107,7 @@ class CoffeeTable(Furniture):
 
 
 class Curtains(Furniture):
-    width, height, depth = 170, 20, 240
+    width, height, depth, z = 170, 20, 240, 20+240//2  # TODO: for human readability add 'z_from_floor=20'
     image_path = "images/furniture/curtains.png"
 
     rules_to_this = {Window: {"sides": ("midtop", "midbottom", 0), "angle": 0}}
@@ -118,7 +122,7 @@ class Nightstand(Furniture):
 
 
 class TableLamp(Furniture):
-    width, height, depth = 25, 25, 30
+    width, height, depth, z = 25, 25, 30, 60+30//2
     image_path = "images/furniture/table_lamp.png"
 
     rules_to_this = {Nightstand: {"sides": ("center", "center", 0), "angle": 0}}

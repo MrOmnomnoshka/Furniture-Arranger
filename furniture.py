@@ -168,17 +168,13 @@ class Furniture(SpriteObject):
                     return penalty
 
                 # Solve sprites offsets rules
-                # me_in_sprite = get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect)
-                # sprite_in_me = get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)
-                # depth_inter = self.check_for_depth_intersection(other_sprite)
-                # in_rules = isinstance(other_sprite, tuple(self.rules))
                 self.calc_offset_rotated_rect(self.get_rotated_rect())
                 other_sprite.calc_offset_rotated_rect(other_sprite.get_rotated_rect())
-                if self.check_for_depth_intersection(other_sprite) \
-                        and (get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect)
-                             or get_rotated_rect_intersections(other_sprite.get_rotated_rect(),
-                                                               self.offset_rotated_rect)) \
-                        and not isinstance(other_sprite, tuple(self.rules)):
+                me_in_sprite = get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect)
+                sprite_in_me = get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)
+                depth_inter = self.check_for_depth_intersection(other_sprite)
+                in_rules = isinstance(other_sprite, tuple(self.rules))
+                if depth_inter and (me_in_sprite or sprite_in_me) and not in_rules:
                     return settings.COLLISION_PENALTY // 30
 
         #  combine every instance by rule groups
