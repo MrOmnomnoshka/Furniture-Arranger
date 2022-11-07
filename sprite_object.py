@@ -164,8 +164,6 @@ class SpriteObject(pygame.sprite.Sprite):
                 desired_dist = int(desired_dist_str[1:])
 
                 if desired_sign == ">":  # TODO: rethink it as imaginary line and move by this line to desired dist
-                    # if type(other_sprite) == furniture_sprites.FloorLamp:
-                    #     print("HERE")
                     other_rect = self.get_other_rect_from_rule(other_sprite, other_sides, desired_dist)
 
                     if get_rotated_rect_intersections(self.get_rotated_rect(), other_rect):
@@ -187,9 +185,10 @@ class SpriteObject(pygame.sprite.Sprite):
                 dist = find_shortest_distance(self.convert_self_side(self_sides[0]), line_to_follow)[0]
 
                 return dist
-            else:
-                print("TODO: add other variants")
+            elif desired_dist_str == "no":  # TODO: remake to "no" to "any"      and     'any' to '<0'
                 return 0
+            else:
+                raise Exception("TODO: add other variants of dist rules!")
 
         else:  # type(int) - "50"
             desired_dist = desired_dist_str
@@ -214,8 +213,26 @@ class SpriteObject(pygame.sprite.Sprite):
         # Find min dist in all 4 points, and min dist in this point to line
         return min([min(res, key=lambda x: x[0]) for res in results], key=lambda x: x[0])
 
-    def get_angle_to_sprite(self, sprite):
-        return 180 - (180 + self.angle - sprite.angle) % 360
+    def get_angle_to_sprite(self, sprite, rule):
+        current_diff = 180 - (180 + self.angle - sprite.angle) % 360  # TODO: simplify this
+
+        angle_desired = rule["angle"]
+        if angle_desired == "any":
+            angle_diff = 0
+        elif angle_desired == "center":
+            real_view = Vector2(0, 1).rotate(-self.angle)
+            desired_view = (Vector2(sprite.rect.center) - Vector2(self.rect.center)).normalize()
+            angle_diff_360 = real_view.angle_to(desired_view)
+            angle_diff = abs(180 - (180 + angle_diff_360) % 360)
+        elif angle_desired == "perpendicular":
+            return 0 if current_diff in (90, -90) else abs(90 - current_diff)  # TODO: check this
+        elif angle_desired == "parallel":
+            pass  # TODO: add parallel
+        else:
+            angle_diff_360 = abs(angle_desired - current_diff)
+            angle_diff = abs(180 - (180 + angle_diff_360) % 360)
+
+        return angle_diff
 
     def check_mouse_over_mask(self, mouse_pos):
         # IF MASK NEEDED - TURN ON

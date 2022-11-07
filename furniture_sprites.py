@@ -1,13 +1,15 @@
 from furniture import Furniture
 from room_parts import Wall, Door, Window
 # TODO: move all classes to other place, to be able to refer to each other
+# TODO: add possibility to have more than 1 rule
 
 
 class DoubleBed(Furniture):
     width, height, depth = 160, 200, 100
     image_path = "images/furniture/double_bed.png"
 
-    rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
+    rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
+                     Window: {"sides": ("top", "top", "no"), "angle": "perpendicular", "required": True}}
     offsets_to_this = {"top": 0, "bottom": 50, "left": 20, "right": 20}
 
 
@@ -137,7 +139,8 @@ class Wardrobe(Furniture):
     width, height, depth = 150, 55, 200
     image_path = "images/furniture/wardrobe.png"
 
-    rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
+    rules_to_this = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
+                     DoubleBed: {"sides": ("any", "any", ">70"), "angle": "perpendicular", "required": True}}
     offsets_to_this = {"bottom": 40, "left": 20, "right": 20}
 
 

@@ -152,7 +152,7 @@ class Furniture(SpriteObject):
         #         return 10000
 
     def get_info_by_rule(self, other_sprite, rule):
-        angle_to = self.get_angle_to_sprite(other_sprite)
+        angle_to = self.get_angle_to_sprite(other_sprite, rule)
         dist = self.rule_distance_to_sprite(other_sprite, rule)
         return angle_to, dist
 
@@ -202,28 +202,11 @@ class Furniture(SpriteObject):
                     angle_desired, distances_desired = rule["angle"], rule["sides"]
                     rule_required = "required" in rule
 
-                    distance_diff = abs(distances_real)  # No need in abs, because it's always positive
+                    distance_diff = distances_real
+                    angle_diff = angle_real
 
-                    if angle_desired == "any":
-                        angle_diff = 0
-                    elif angle_desired == "center":
-                        real_view = Vector2(0, 1).rotate(-self.angle)
-                        desired_view = (Vector2(other_sprite.rect.center) - Vector2(self.rect.center)).normalize()
-                        angle_diff_360 = real_view.angle_to(desired_view)
-                        angle_diff = abs(180 - (180 + angle_diff_360) % 360)
-                    else:
-                        angle_diff_360 = abs(angle_desired - angle_real)
-                        angle_diff = abs(180 - (180 + angle_diff_360) % 360)
-
-                    # if isinstance(other_sprite, Wall):
-                    #     affinity = 100
-                    # # elif isinstance(self, furniture_sprites.Table):  # TODO: FOR DEBUG
-                    # #     affinity = 0
-                    # else:
-                    #     affinity = 1
-                    affinity = 1
-
-                    fitness = (distance_diff + angle_diff) * affinity
+                    # affinity = 1
+                    fitness = (distance_diff + angle_diff)# * affinity
                     if rule_required and re.search(r"[><=]", str(distances_desired[2])):  # Always immediately add it if required  # TODO: not working like that?
                         fit_sum += fitness
                     else:  # Add it to optional rules

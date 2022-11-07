@@ -147,7 +147,9 @@ def event_handling():
                 settings.H_DEBUG = not settings.H_DEBUG
                 print("'H' pressed for debug.", settings.H_DEBUG)
             elif event.key == pygame.K_n:
-                settings.DRAW_EVERY_N = not settings.DRAW_EVERY_N
+                settings.DRAW_EVERY_OBJ = not settings.DRAW_EVERY_OBJ
+            elif event.key == pygame.K_p:
+                settings.INIT_EVERY_N = not settings.INIT_EVERY_N
             elif event.key == pygame.K_SPACE:
                 change_furniture_attr("active")
             elif event.key == pygame.K_l:
@@ -254,11 +256,6 @@ def draw_all(draw_bg=True):
                 other_rect = add_offset_to_position(other_rect)
                 pygame.draw.lines(screen, blue, True, other_rect, draw_width)
 
-            # Draw BLUE border of distances ('>' '<') rules objects
-            for other_sprite, other_rect in sprite.rect_rotated_rules:
-                other_rect = add_offset_to_position(other_rect)
-                pygame.draw.lines(screen, dark_blue, True, other_rect, draw_width)
-
             # Draw BLUE distance lines from current sprite to other sprites
             if Furniture.show_distances == sprite:
                 for other_sprite in all_sprites:
@@ -317,6 +314,19 @@ def draw_all(draw_bg=True):
         fitness = font.render(f"   Fitness: {sprite_fitness}", True, cyan)
         screen.blit(fitness, (10, 190))
 
+        # Draw DARK BLUE border of distances ('>' '<') rules objects
+        for other_sprite, other_rect in sprite.rect_rotated_rules:
+            other_rect = add_offset_to_position(other_rect)
+            pygame.draw.lines(screen, dark_blue, True, other_rect, draw_width)
+
+        # Draw BLUE border of sprite offsets (if offset is not equal to sprite rect)
+        for other_sprite in settings.ALL_OBJECTS:
+            if other_sprite != sprite:
+                other_rect = other_sprite.offset_rotated_rect
+                if other_rect and other_rect != other_sprite.get_rotated_rect():
+                    other_rect = add_offset_to_position(other_rect)
+                    pygame.draw.lines(screen, blue, True, other_rect, draw_width)
+
         if sprite_fitness > 100_000:
             # draw RED alpha rectangle around the image
             s = pygame.Surface(sprite.scaled_original_image.get_size(), pygame.SRCALPHA)
@@ -369,7 +379,7 @@ def draw_every_generation(data):
         last_data = settings.FONT.render("Fitness: " + str(data["report_list"][-1]), True, magenta)
         settings.SCREEN.blit(last_data, (10, settings.SCREEN_HEIGHT - 60))
 
-        if settings.DRAW_EVERY_N:
+        if settings.DRAW_EVERY_OBJ:
             for obj_data in data.last_generation.variables:
                 set_sprite_values(obj_data)
                 settings.CURRENT_GA_SPRITE.draw(settings.SCREEN)
