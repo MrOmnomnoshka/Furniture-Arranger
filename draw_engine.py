@@ -104,7 +104,7 @@ def event_handling():
             program_exit()
         elif event.type == pygame.MOUSEWHEEL:
             # rotate sprite
-            if Furniture.active and get_hovered_furniture():
+            if Furniture.active and get_hovered_furniture() == Furniture.active:
                 rotate_step = 15 if shift_mod_pressed else 1
                 Furniture.active.rotate(rotate_step * event.y)
             # camera zoom to mouse
@@ -210,7 +210,7 @@ def draw_all(draw_bg=True):
     lang = getattr(translate, settings.LANGUAGE)
 
     if draw_bg:
-        screen.fill(white_dark)
+        screen.fill(background)
 
     if not settings.SPRITE_ORDER or len(settings.SPRITE_ORDER) != len(all_sprites):
         # sort sprites by z value
@@ -289,32 +289,33 @@ def draw_all(draw_bg=True):
     screen.blit(fps, (10, 10))
 
     # Show scaled mouse pos
-    pos_scaled = ','.join([str(int(p)) for p in get_mouse_offset()])
-    mouse_pos = font.render(f"{lang['mouse_pos']}: {pos_scaled}", True, magenta)
-    screen.blit(mouse_pos, (10, 40))
+    if settings.DEBUG:
+        pos_scaled = ','.join([str(int(p)) for p in get_mouse_offset()])
+        mouse_pos = font.render(f"{lang['mouse_pos']}: {pos_scaled}", True, magenta)
+        screen.blit(mouse_pos, (10, 40))
 
     if Furniture.active:
         sprite = Furniture.active
 
         # Show active sprite name
-        active = font.render(f"Active: {sprite.name}", True, cyan)
+        active = font.render(f"Active: {sprite.name}", True, active_sprite)
         screen.blit(active, (10, 70))
 
         # Show active sprite x,y,z
-        xyz = font.render(f"   XYZ: {sprite.coordinates}", True, cyan)
+        xyz = font.render(f"   XYZ: {sprite.coordinates}", True, active_sprite)
         screen.blit(xyz, (10, 100))
 
         # Show active sprite parameters
-        params = font.render(f"   Params: {sprite.parameters}", True, cyan)
+        params = font.render(f"   Params: {sprite.parameters}", True, active_sprite)
         screen.blit(params, (10, 130))
 
         # Show active sprite angle
-        angle = font.render(f"   Angle: {sprite.angle}", True, cyan)
+        angle = font.render(f"   Angle: {sprite.angle}", True, active_sprite)
         screen.blit(angle, (10, 160))
 
         # Show active sprite fitness
         sprite_fitness = sprite.get_fitness()
-        fitness = font.render(f"   Fitness: {sprite_fitness}", True, cyan)
+        fitness = font.render(f"   Fitness: {sprite_fitness}", True, active_sprite)
         screen.blit(fitness, (10, 190))
 
         # Draw DARK BLUE border of distances ('>' '<') rules objects
@@ -329,9 +330,9 @@ def draw_all(draw_bg=True):
                 other_rect = add_offset_to_position(other_rect)
                 pygame.draw.lines(screen, blue, True, other_rect, draw_width)
 
-        # Draw cyan rect around active sprite
+        # Draw 'active_sprite' color rect around active sprite
         pts = add_offset_to_position(Furniture.active.get_rotated_rect())
-        pygame.draw.lines(screen, cyan, True, pts, draw_width*2)
+        pygame.draw.lines(screen, active_sprite, True, pts, draw_width*2)
 
         if sprite_fitness > 100_000:
             # draw RED alpha rectangle around the image
@@ -370,7 +371,7 @@ def draw_every_generation(data):
     if settings.INIT_EVERY_N:
         if not pygame.get_init():
             init_pygame("draw_every_generation")
-            settings.SCREEN.fill(white_dark)
+            settings.SCREEN.fill(background)
 
         # =======  Left down corner info =======
         # show current generation
@@ -389,7 +390,7 @@ def draw_every_generation(data):
             set_sprite_values(data.last_generation.variables[0])
 
         draw_all(False)
-        settings.SCREEN.fill(white_dark)
+        settings.SCREEN.fill(background)
         settings.CLOCK.tick(settings.FPS_IN_EVERY_N)
 
     if pygame.get_init():

@@ -28,6 +28,7 @@ class Dresser(Furniture):
     image_path = "images/furniture/dresser.png"
 
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
+    offsets_to_this = {"top": 0, "bottom": 30, "left": 20, "right": 20}
 
 
 class Table(Furniture):
@@ -59,7 +60,7 @@ class TV(Furniture):
 
 
 class ComputerTable(Furniture):
-    width, height, depth = 136, 60, 75
+    width, height, depth = 136, 70, 75
     image_path = "images/furniture/computer table.png"
 
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
@@ -124,7 +125,9 @@ class Nightstand(Furniture):
     image_path = "images/furniture/nightstand.png"
 
     rules = {DoubleBed: {"sides": ("topleft topright", "topleft topright", 0), "angle": 0},
-             Sofa: {"sides": ("midlr", "midlr", 0), "angle": 0}}
+             Sofa: {"sides": ("midlr", "midlr", 0), "angle": 0},
+             ComputerTable: {"sides": ("midlr", "midlr", 0), "angle": 0},
+             Armchair: {"sides": ("midlr", "midlr", 0), "angle": 0}}
 
 
 class TableLamp(Furniture):

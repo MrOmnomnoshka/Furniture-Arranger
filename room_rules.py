@@ -23,8 +23,8 @@ def living_room_BIG():
     # ==================== FURNITURE ====================
     # args: width, height, depth, angle, x, y, z, optional
     furniture_obj = [TV(), Sofa(), CoffeeTable(), CarpetBig(), Table(), KitchenChair(), KitchenChair(),
-                     KitchenChair(optional=True), ComputerTable(), ComputerChair(), Armchair(), Nightstand(),
-                     Dresser(), FloorLamp(), FloorLamp(optional=True)]
+                     KitchenChair(), KitchenChair(optional=True), ComputerTable(), ComputerChair(), Armchair(),
+                     Dresser(), Nightstand(optional=True), FloorLamp(optional=True)]
 
     return furniture_obj
 
