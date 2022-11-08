@@ -227,7 +227,7 @@ class Furniture(SpriteObject):
 def check_in_rules_recursively(slave, class_to_check):
     # Doing it recursively is wrong. TODO(MB): make exception rule for some objects? OR for objects that stay on other?
     # if slave == furniture_sprites.TableLamp - OUR EXCEPTION
-    if slave == furniture_sprites.TableLamp or class_to_check in slave.rules:
+    if (slave == furniture_sprites.TableLamp or class_to_check in slave.rules) and not class_to_check == room_parts.Wall:
         return True  # Find in all rules
     return False
 
