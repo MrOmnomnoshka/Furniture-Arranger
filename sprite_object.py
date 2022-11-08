@@ -1,9 +1,9 @@
+import socket
+
 import settings
 from colors import rand_color
 import pygame
-from pygame.math import Vector2
-from math_2d import find_shortest_distance, point_to_line, translate_side, convert_side, move_side_to_distance, \
-    get_rotated_rect_intersections, point_in_rect
+from math_2d import *
 import re
 
 
@@ -23,7 +23,10 @@ class SpriteObject(pygame.sprite.Sprite):
     def __init__(self, width=50, height=50, depth=50, angle=0, x=0, y=0, z=0, optional=False):  # TODO: need xyz here or just in 'set_pos'?
         pygame.sprite.Sprite.__init__(self)
 
-        self.rules = dict()  # dict with rules for each sprite
+        # self.rules = dict()  # dict with rules for each sprite
+        if not hasattr(self, "rules"):
+            self.rules = dict()
+
         self.offsets = {"top": 0, "bottom": 0, "left": 0, "right": 0}  # offsets - dict with offsets for each side
         self.set_unique_params(width, height, depth)  # set rules, offsets and (width, height, depth) parameters
 
@@ -50,8 +53,8 @@ class SpriteObject(pygame.sprite.Sprite):
         self.rect_rotated_rules = list()
 
     def set_unique_params(self, width, height, depth):
-        if hasattr(self, "rules_to_this"):
-            self.rules.update(self.rules_to_this)
+        # if hasattr(self, "rules_to_this"):
+        #     self.rules.update(self.rules_to_this)
         if hasattr(self, "offsets_to_this"):
             self.offsets.update(self.offsets_to_this)
 
@@ -214,7 +217,7 @@ class SpriteObject(pygame.sprite.Sprite):
         return min([min(res, key=lambda x: x[0]) for res in results], key=lambda x: x[0])
 
     def get_angle_to_sprite(self, sprite, rule):
-        current_diff = 180 - (180 + self.angle - sprite.angle) % 360  # TODO: simplify this
+        current_diff = convert_360_to_180(self.angle - sprite.angle)  # from -180 to 180
 
         angle_desired = rule["angle"]
         if angle_desired == "any":
@@ -222,12 +225,13 @@ class SpriteObject(pygame.sprite.Sprite):
         elif angle_desired == "center":
             real_view = Vector2(0, 1).rotate(-self.angle)
             desired_view = (Vector2(sprite.rect.center) - Vector2(self.rect.center)).normalize()
-            angle_diff_360 = real_view.angle_to(desired_view)
-            angle_diff = abs(180 - (180 + angle_diff_360) % 360)
+            angle_diff = abs(convert_360_to_180(real_view.angle_to(desired_view)))
         elif angle_desired == "perpendicular":
-            return 0 if current_diff in (90, -90) else abs(90 - current_diff)  # TODO: check this
+            angle_diff = abs(90 - abs(current_diff))
         elif angle_desired == "parallel":
-            pass  # TODO: add parallel
+            angle_diff = abs(current_diff)
+            if angle_diff > 90:
+                angle_diff = (90 - angle_diff % 90) % 90  # TODO: mb refactor with '%' usage
         else:
             angle_diff_360 = abs(angle_desired - current_diff)
             angle_diff = abs(180 - (180 + angle_diff_360) % 360)
@@ -257,8 +261,8 @@ class SpriteObject(pygame.sprite.Sprite):
             rect_angle = [(Vector2(p) - center).rotate(-self.angle) + center for p in pts]
             self.rotated_rect = rect_angle  # Replace it with new one
 
-            # # change offset rotated rect
-            # self.calc_offset_rotated_rect(rect_angle)  # TODO: Comment this will work faster
+            # change offset rotated rect
+            self.calc_offset_rotated_rect(rect_angle)  # Comment this - it will work faster
 
         return self.rotated_rect
 

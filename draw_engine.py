@@ -250,11 +250,12 @@ def draw_all(draw_bg=True):
             lines = add_offset_to_position([Vector2(sprite.rect.center), sprite.rect.center + arrow_vec])
             pygame.draw.lines(screen, red, True, lines, draw_width)
 
-            # Draw BLUE border of sprite offsets (if offset is not equal to sprite rect)
-            other_rect = sprite.offset_rotated_rect
-            if other_rect and other_rect != sprite.get_rotated_rect():
-                other_rect = add_offset_to_position(other_rect)
-                pygame.draw.lines(screen, blue, True, other_rect, draw_width)
+            # Draw BLUE border of sprite offsets (if offset is not equal to sprite rect) ((and no active Furniture))
+            if not Furniture.active:
+                other_rect = sprite.offset_rotated_rect
+                if other_rect and other_rect != sprite.get_rotated_rect():
+                    other_rect = add_offset_to_position(other_rect)
+                    pygame.draw.lines(screen, blue, True, other_rect, draw_width)
 
             # Draw BLUE distance lines from current sprite to other sprites
             if Furniture.show_distances == sprite:
@@ -294,6 +295,8 @@ def draw_all(draw_bg=True):
 
     if Furniture.active:
         sprite = Furniture.active
+
+        # Show active sprite name
         active = font.render(f"Active: {sprite.name}", True, cyan)
         screen.blit(active, (10, 70))
 
@@ -321,11 +324,14 @@ def draw_all(draw_bg=True):
 
         # Draw BLUE border of sprite offsets (if offset is not equal to sprite rect)
         for other_sprite in settings.ALL_OBJECTS:
-            if other_sprite != sprite:
-                other_rect = other_sprite.offset_rotated_rect
-                if other_rect and other_rect != other_sprite.get_rotated_rect():
-                    other_rect = add_offset_to_position(other_rect)
-                    pygame.draw.lines(screen, blue, True, other_rect, draw_width)
+            other_rect = other_sprite.offset_rotated_rect
+            if other_rect and other_rect != other_sprite.get_rotated_rect():
+                other_rect = add_offset_to_position(other_rect)
+                pygame.draw.lines(screen, blue, True, other_rect, draw_width)
+
+        # Draw cyan rect around active sprite
+        pts = add_offset_to_position(Furniture.active.get_rotated_rect())
+        pygame.draw.lines(screen, cyan, True, pts, draw_width*2)
 
         if sprite_fitness > 100_000:
             # draw RED alpha rectangle around the image
@@ -337,10 +343,6 @@ def draw_all(draw_bg=True):
             s = pygame.Surface(sprite.scaled_original_image.get_size(), pygame.SRCALPHA)
             s.fill(green + (100,))  # notice the alpha value in the color
             screen.blit(pygame.transform.rotate(s, sprite.angle), sprite.rect_to_draw.topleft)
-
-        # Draw cyan rect around active sprite
-        pts = add_offset_to_position(Furniture.active.get_rotated_rect())
-        pygame.draw.lines(screen, cyan, True, pts, draw_width)
 
     # =======  Right up corner info =======
     # show room width

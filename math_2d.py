@@ -99,6 +99,10 @@ def point_in_rect(point, rect):
     return 0 <= ab * ap <= ab * ab and 0 <= bc * bp <= bc * bc
 
 
+def convert_360_to_180(angle):
+    return 180 - (180 + angle) % 360  # convert [0,360] to [-180,180]
+
+
 def get_rotated_rect_intersections(rect_1, rect_2):
     # Check for lines intersection
     line_intersections = get_line_intersection(rect_1, rect_2)
@@ -123,6 +127,8 @@ def translate_side(side_to_translate):
         side = ["top", "bottom", "left", "right"]
     elif side[0] == "midany":
         side = ["midtop", "midbottom", "midleft", "midright"]
+    elif side[0] == "anycorner":
+        side = ["topleft", "topright", "bottomleft", "bottomright"]
     elif side[0] == "lr":
         side = ["left", "right"]
     elif side[0] == "midlr":
@@ -136,10 +142,10 @@ def translate_side(side_to_translate):
 
 def convert_side(side, rect):
     """ possible sides:
-    topleft, bottomleft, topright, bottomright TODO: no corners
-    *top, *left, *bottom, *right
-    *midtop, *midleft, *midbottom, *midright
-    *center"""
+    topleft, bottomleft, topright, bottomright
+    top, left, bottom, right
+    midtop, midleft, midbottom, midright
+    center"""
 
     # rect = [topleft, topright, bottomright, bottomleft]
     if side == "top":
@@ -160,6 +166,14 @@ def convert_side(side, rect):
         return (rect[2] - rect[1]) / 2 + rect[1]
     elif side == "center":
         return (rect[2] - rect[0]) / 2 + rect[0]
+    elif side == "topleft":
+        return rect[0]
+    elif side == "topright":
+        return rect[1]
+    elif side == "bottomright":
+        return rect[2]
+    elif side == "bottomleft":
+        return rect[3]
 
 
 def move_side_to_distance(desired_dist, side, sprite, side_vec):

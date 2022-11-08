@@ -15,16 +15,16 @@ def get_bedroom_master_17__24_9m():
 
 
 def living_room_9__15m():
-    furniture_obj = [TV(), Curtains(), Sofa(), CoffeeTable(), Dresser(), Armchair(), FloorLamp()]
+    furniture_obj = [Curtains(), TV(), Sofa(), CoffeeTable(), Dresser(), Armchair(), FloorLamp()]
     return furniture_obj
 
 
-def generate_furniture():
+def living_room_BIG():
     # ==================== FURNITURE ====================
     # args: width, height, depth, angle, x, y, z, optional
-    furniture_obj = [TV(), Sofa(), CoffeeTable(), Armchair(), CarpetBig(), ComputerTable(), ComputerChair(),
-                     Nightstand(), Dresser(), FloorLamp(), FloorLamp(optional=True), Table(), KitchenChair(),
-                     KitchenChair(), KitchenChair()]
+    furniture_obj = [TV(), Sofa(), CoffeeTable(), CarpetBig(), Table(), KitchenChair(), KitchenChair(),
+                     KitchenChair(optional=True), ComputerTable(), ComputerChair(), Armchair(), Nightstand(),
+                     Dresser(), FloorLamp(), FloorLamp(optional=True)]
 
     return furniture_obj
 

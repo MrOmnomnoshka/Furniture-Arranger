@@ -1,3 +1,4 @@
+import furniture_sprites
 import settings
 from math_2d import *
 from sprite_object import SpriteObject
@@ -168,13 +169,12 @@ class Furniture(SpriteObject):
                     return penalty
 
                 # Solve sprites offsets rules
-                self.calc_offset_rotated_rect(self.get_rotated_rect())
-                other_sprite.calc_offset_rotated_rect(other_sprite.get_rotated_rect())
-                me_in_sprite = get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect)
-                sprite_in_me = get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)
-                depth_inter = self.check_for_depth_intersection(other_sprite)
-                in_rules = isinstance(other_sprite, tuple(self.rules))
-                if depth_inter and (me_in_sprite or sprite_in_me) and not in_rules:
+                # if depth_inter and (me_in_sprite or sprite_in_me) and (not me_in_rules and not rules_in_me)
+                if self.check_for_depth_intersection(other_sprite) and \
+                        (get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect) or
+                         get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)) and\
+                        (not check_in_rules_recursively(self.__class__, other_sprite.__class__) and
+                         not check_in_rules_recursively(other_sprite.__class__, self.__class__)):
                     return settings.COLLISION_PENALTY // 30
 
         #  combine every instance by rule groups
@@ -222,3 +222,27 @@ class Furniture(SpriteObject):
         if optional_rules_fitness:  # sum of all required rules + minimum of optional rules
             fit_sum += min(optional_rules_fitness)
         return fit_sum
+
+
+def check_in_rules_recursively(slave, class_to_check):
+    # Doing it recursively is wrong. TODO(MB): make exception rule for some objects? OR for objects that stay on other?
+    # if slave == furniture_sprites.TableLamp - OUR EXCEPTION
+    if slave == furniture_sprites.TableLamp or class_to_check in slave.rules:
+        return True  # Find in all rules
+    return False
+
+    # if class_to_check == slave:
+    #     return True
+    # else:
+    #     if slave.rules:
+    #         if class_to_check in slave.rules:
+    #             return True  # Find in all rules
+    #         for rule in slave.rules:
+    #             if check_in_rules_recursively(rule, class_to_check):
+    #                 return True
+    #     else:
+    #         return False
+    # return False
+
+    # ## OLD version:
+    # ## return isinstance(sprite_to_check, tuple(self.rules))
