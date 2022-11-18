@@ -152,14 +152,7 @@ class Furniture(SpriteObject):
         #         # Fitness penalty
         #         return 10000
 
-    def get_info_by_rule(self, other_sprite, rule):
-        angle_to = self.get_angle_to_sprite(other_sprite, rule)
-        dist = self.rule_distance_to_sprite(other_sprite, rule)
-        return angle_to, dist
-
-    def get_fitness(self):
-        fit_sum = 0
-
+    def solve_collisions_and_offsets(self):
         for other_sprite in settings.ALL_OBJECTS:
             if other_sprite != self:
                 # Solve collisions
@@ -169,59 +162,58 @@ class Furniture(SpriteObject):
                     return penalty
 
                 # Solve sprites offsets rules
-                # if depth_inter and (me_in_sprite or sprite_in_me) and (not me_in_rules and not rules_in_me)
-                if self.check_for_depth_intersection(other_sprite) and \
-                        (get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect) or
-                         get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)) and\
+                # if (me_in_sprite or sprite_in_me) and depth_inter and (not me_in_rules and not rules_in_me)
+                if (get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect) or
+                    get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)) and \
+                        self.check_for_depth_intersection(other_sprite) and \
                         (not check_in_rules_recursively(self.__class__, other_sprite.__class__) and
                          not check_in_rules_recursively(other_sprite.__class__, self.__class__)):
-                    return settings.COLLISION_PENALTY // 30
+                    return settings.COLLISION_PENALTY // 30  # 30 is just magic number to divide offset from collision
 
-        #  combine every instance by rule groups
-        rule_group = []
+    def get_fitness(self):
+        fit_sum = 0
+
+        # Solve all collisions and offsets rules
+        penalty = self.solve_collisions_and_offsets()
+        if penalty:
+            return penalty
+
+        # If there are a few rules, add only the minimum one
+        optional_rules_fitness = []
 
         self.rect_rotated_rules = []  # delete all old 'rect_rotated_rules' for correct drawing in DEBUG mode
         for rule_obj in self.rules:
-            if self.rules[rule_obj]:  # if not None
-                rule_group.append([])
+            # combine every instance by rule groups
+            rule_group = []
+
+            rules = self.rules[rule_obj]
+            if rules and rule_obj in (type(obj) for obj in settings.ALL_OBJECTS):  # if rule is not 'None' and object exists in current room
                 for other_sprite in settings.ALL_OBJECTS:
                     if isinstance(other_sprite, rule_obj) and other_sprite != self:
-                        rule = self.rules[rule_obj]
-                        info = self.get_info_by_rule(other_sprite, rule)  # angle, distance
-                        rule_group[-1].append((other_sprite, rule, info))
+                        if type(rules) == dict:  # if there is only one rule
+                            rules = (rules,)  # make it iterable (tuple)
 
-        # If there are a few rules, move to the minimum one
-        optional_rules_fitness = []
+                        for rule in rules:
+                            dist = self.rule_distance_to_sprite(other_sprite, rule)
+                            rule_group.append((other_sprite, rule, dist))
 
-        # Get fitness for every group
-        for rule_instance in rule_group:
-            if rule_instance:  # If not empty
-                for rule_obj in rule_instance:
-                    other_sprite, rule, (angle_real, distances_real) = rule_obj
-                    # other_sprite, rule, (angle_real, distances_real) = nearest_object
-                    angle_desired, distances_desired = rule["angle"], rule["sides"]
-                    rule_required = "required" in rule
+            # calc nearest fitness
+            if any(rule_group):
+                nearest = min(rule_group, key=lambda x: x[2])
 
-                    distance_diff = distances_real
-                    angle_diff = angle_real
+                other_sprite, rule, dist = nearest
+                angle = self.get_angle_to_sprite(other_sprite, rule)
+                rule_required = rule["required"] if "required" in rule else False
+                fitness = dist + angle
 
-                    # affinity = 1
-                    fitness = (distance_diff + angle_diff)# * affinity
-                    if rule_required and re.search(r"[><=]", str(distances_desired[2])):  # Always immediately add it if required  # TODO: not working like that?
-                        fit_sum += fitness
-                    else:  # Add it to optional rules
-                        nearest_object = min(rule_instance, key=lambda x: x[2][1])
-                        if rule_obj == nearest_object:
-                            if rule_required:  # TODO: refactor this
-                                fit_sum += fitness
-                            else:
-                                optional_rules_fitness.append(fitness)
+                if rule_required:
+                    fit_sum += fitness
+                else:
+                    optional_rules_fitness.append(fitness)
 
-                    # fit_sum += fitness
-                    # fit_sum += angle_diff
         if optional_rules_fitness:  # sum of all required rules + minimum of optional rules
             fit_sum += min(optional_rules_fitness)
-        return fit_sum
+        return round(fit_sum, 2)  # WARNING ROUND IS VERY DANGEROUS. DO NOT FORGET ABOUT IT
 
 
 def check_in_rules_recursively(slave, class_to_check):

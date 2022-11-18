@@ -3,7 +3,6 @@ from room_parts import Wall, Door, Window
 
 
 # TODO: move all classes to other place, to be able to refer to each other
-# TODO: add possibility to have more than 1 rule to 1 sprite instance
 
 
 class DoubleBed(Furniture):
@@ -11,7 +10,7 @@ class DoubleBed(Furniture):
     image_path = "images/furniture/double_bed.png"
 
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
-             Window: {"sides": ("top", "top", "no"), "angle": "perpendicular", "required": True}}
+             Window: {"angle": "perpendicular", "required": True}}
     offsets_to_this = {"top": 0, "bottom": 50, "left": 20, "right": 20}
 
 
@@ -56,7 +55,6 @@ class TV(Furniture):
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
              DoubleBed: {"sides": ("midbottom", "midbottom", "any"), "angle": 180}}
     offsets_to_this = {"bottom": 100}
-    # rules = [{"object": Wall, "self_sides": "midtop", "object_sides": "bottom", "angle": 0, "required": True}]  # TODO: make this rules standart
 
 
 class ComputerTable(Furniture):
@@ -64,7 +62,7 @@ class ComputerTable(Furniture):
     image_path = "images/furniture/computer table.png"
 
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
-             TV: {"sides": ("any", "any", ">50"), "angle": "any"}}
+             TV: {"sides": ("any", "any", ">50", "related")}}
     offsets_to_this = {"bottom": 40, "left": 20, "right": 20}
 
 
@@ -95,15 +93,15 @@ class KitchenChair(Furniture):
     width, height, depth = 48, 52, 81
     image_path = "images/furniture/kitchen_chair.png"
 
-    # TODO: angle - 'перпендикулярно' грани стола (и потом добавить параллельно)
-    rules = {Table: {"sides": ("midbottom", "midany", 10), "angle": "center"}}
+    # TODO: angle - 'перпендикулярно' ГРАНИ стола (и потом добавить параллельно)
+    rules = {Table: {"sides": ("midbottom", "midany", "<20"), "angle": "center"}}
 
 
 class ComputerChair(Furniture):
     width, height, depth = 48, 52, 140
     image_path = "images/furniture/chair.png"
-
-    rules = {ComputerTable: {"sides": ("midbottom", "midbottom", 10), "angle": 180}}
+    # TODO: MB refactor all desired dist as "><=" (all both are correct)
+    rules = {ComputerTable: {"sides": ("midbottom", "midbottom", 10, "related"), "angle": 180}}
 
 
 class CoffeeTable(Furniture):
@@ -131,7 +129,7 @@ class Nightstand(Furniture):
 
 
 class TableLamp(Furniture):
-    width, height, depth, z = 25, 25, 30, 60 + 30 // 2
+    width, height, depth, z = 26, 26, 30, 60 + 30 // 2
     image_path = "images/furniture/table_lamp.png"
 
     rules = {Nightstand: {"sides": ("center", "center", 0), "angle": 0}}
@@ -140,8 +138,6 @@ class TableLamp(Furniture):
 class TableRound(Furniture):
     width, height, depth = 100, 100, 75
     image_path = "images/furniture/table_round.png"
-
-    rules = dict()
 
 
 class Wardrobe(Furniture):

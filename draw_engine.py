@@ -146,6 +146,11 @@ def event_handling():
             elif event.key == pygame.K_h:
                 settings.H_DEBUG = not settings.H_DEBUG
                 print("'H' pressed for debug.", settings.H_DEBUG)
+            elif event.key == pygame.K_g:
+                settings.FITNESS_GRADIENT_MODE = not settings.FITNESS_GRADIENT_MODE
+            elif event.key == pygame.K_b:
+                if settings.FITNESS_GRADIENT_MODE:  # recalc only if gradient mode is on
+                    settings.FG_MODE_RECALC = True
             elif event.key == pygame.K_n:
                 settings.DRAW_EVERY_OBJ = not settings.DRAW_EVERY_OBJ
             elif event.key == pygame.K_p:
@@ -158,7 +163,7 @@ def event_handling():
                 settings.SCALE = 1
                 settings.X_OFFSET = (settings.SCREEN_WIDTH - settings.ROOM_WIDTH) // 2
                 settings.Y_OFFSET = (settings.SCREEN_HEIGHT - settings.ROOM_HEIGHT) // 2
-            set_furniture_precisely(event.key)
+            set_furniture_precisely(event.key, shift_mod_pressed)
     return done
 
 
@@ -178,20 +183,21 @@ def move_screen():
     settings.Y_OFFSET += ud * move_step
 
 
-def set_furniture_precisely(key):
+def set_furniture_precisely(key, shift):
+    step = 15 if shift else 1
     if Furniture.active:
         if key in (pygame.K_LEFT, pygame.K_a):
-            Furniture.active.rect.x -= 1
+            Furniture.active.rect.x -= step
         elif key in (pygame.K_RIGHT, pygame.K_d):
-            Furniture.active.rect.x += 1
+            Furniture.active.rect.x += step
         elif key in (pygame.K_UP, pygame.K_w):
-            Furniture.active.rect.y -= 1
+            Furniture.active.rect.y -= step
         elif key in (pygame.K_DOWN, pygame.K_s):
-            Furniture.active.rect.y += 1
+            Furniture.active.rect.y += step
         elif key == pygame.K_q:
-            Furniture.active.rotate(1)
+            Furniture.active.rotate(step)
         elif key == pygame.K_e:
-            Furniture.active.rotate(-1)
+            Furniture.active.rotate(-step)
 
 
 def add_offset_to_position(position):
@@ -205,12 +211,60 @@ def add_offset_to_position(position):
     return new_position
 
 
+def get_fitness_surface(sprite):
+    start_pos = sprite.rect.center  # Save sprite start position
+    precision = settings.FG_PRECISION
+    surf = pygame.Surface((settings.ROOM_WIDTH, settings.ROOM_HEIGHT), pygame.SRCALPHA)
+
+    for y in range(0, settings.ROOM_HEIGHT, precision):
+        for x in range(0, settings.ROOM_WIDTH, precision):
+            sprite.rect.center = (x, y)
+            fit = sprite.get_fitness()
+            # color = (0, 0, 0, 0)
+
+            # # Only Green
+            # if fit == 0:
+            #     color = green_a
+
+            # # Only Green and Red
+            # if fit == 0:
+            #     color = green_a
+            # elif fit >= 100_000:
+            #     color = red_a
+
+            # # green->red (X2)
+            # max_fit = min(255, fit*2)
+            # color = (max_fit, 255-max_fit, 0, 100)
+
+            # green->yellow->red
+            max_fit = min(510, fit)
+            if max_fit <= 255:
+                color = (max_fit, 255, 0, 100)
+            else:  # > 255
+                color = (255, 510 - max_fit, 0, 100)
+
+            # Draw on that surface
+            surf.fill(color, (x - precision//2, y - precision//2, precision, precision))
+    sprite.rect.center = start_pos  # Load back sprite to its start position
+    return surf
+
+
 def draw_all(draw_bg=True):
     font, all_sprites, clock, screen = settings.FONT, settings.ALL_OBJECTS, settings.CLOCK, settings.SCREEN
     lang = getattr(translate, settings.LANGUAGE)
 
     if draw_bg:
         screen.fill(background)
+
+    if settings.FITNESS_GRADIENT_MODE and Furniture.active:
+        if not Furniture.active.fitness_surface or settings.FG_MODE_RECALC:
+            Furniture.active.fitness_surface = get_fitness_surface(Furniture.active)
+            settings.FG_MODE_RECALC = False
+
+        surf_scaled = pygame.transform.scale(Furniture.active.fitness_surface,
+                                             (settings.ROOM_WIDTH * settings.SCALE,
+                                              settings.ROOM_HEIGHT * settings.SCALE))
+        screen.blit(surf_scaled, add_offset_to_position(Vector2(0, 0)))
 
     if not settings.SPRITE_ORDER or len(settings.SPRITE_ORDER) != len(all_sprites):
         # sort sprites by z value
@@ -382,6 +436,11 @@ def draw_every_generation(data):
         last_data = settings.FONT.render("Fitness: " + str(data["report_list"][-1]), True, magenta)
         settings.SCREEN.blit(last_data, (10, settings.SCREEN_HEIGHT - 60))
 
+        # show sprite name
+        sprite_name = settings.FONT.render("Object: " + settings.CURRENT_GA_SPRITE.name, True, magenta)
+        settings.SCREEN.blit(sprite_name, (10, settings.SCREEN_HEIGHT - 90))
+
+        # Sprites drawing
         if settings.DRAW_EVERY_OBJ:
             for obj_data in data.last_generation.variables:
                 set_sprite_values(obj_data)

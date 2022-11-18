@@ -5,8 +5,9 @@ import furniture_sprites
 import room_rules
 import settings
 from GA_furniture import start_ga, set_sprite_values
-from draw_engine import draw_loop
+from draw_engine import draw_loop, draw_all, pygame
 from room_parts import Wall, Door, Window
+from furniture import Furniture
 
 
 def generate_room_parameters(room_size, accuracy=2):
@@ -133,7 +134,7 @@ def set_room_params(room_size_sqm):
 
 def main():
     # room_size_sqm = float(input("Enter room size in sq meters: "))
-    room_size_sqm = 32  # 24.9  # 32
+    room_size_sqm = 32  #32  # 24.9  # 32
 
     for amount in range(settings.MAIN_ITERATIONS):
         set_room_params(room_size_sqm)
@@ -147,7 +148,7 @@ def main():
         # furniture_obj = room_rules.living_room_9__15m()
         # furniture_obj = room_rules.all_furniture()
         furniture_obj = room_rules.living_room_BIG()
-        # furniture_obj = [furniture_sprites.DoubleBed(x=200, y=200), furniture_sprites.Nightstand(x=500, y=200)]
+        # furniture_obj = [furniture_sprites.DoubleBed(x=300, y=220), furniture_sprites.Wardrobe(x=100, y=244)]
 
         start_time = time()
         for i, f_obj in enumerate(furniture_obj):
@@ -155,6 +156,7 @@ def main():
                 print(f" Now running: '{f_obj.name.upper()}' ({i + 1}/{len(furniture_obj)}) ".center(60, "="))
             settings.ALL_OBJECTS.append(f_obj)
             settings.CURRENT_GA_SPRITE = f_obj
+            Furniture.active = settings.CURRENT_GA_SPRITE
 
             if settings.START_GA:
                 solution = start_ga()
@@ -171,6 +173,10 @@ def main():
                     print("\nSuccessfully placed:", f_obj, "\n")
 
             #  ########draw_loop(f"Want to replace smth? {amount + 1}/{settings.MAIN_ITERATIONS}")
+
+            # update screen for exit cases (>max iter, >max time etc)
+            if pygame.get_init():
+                draw_all()
 
         print(f"Time takes to generate {len(furniture_obj)} objects: {time() - start_time:.2f} seconds")
         draw_loop(f"Done! {amount + 1}/{settings.MAIN_ITERATIONS}")

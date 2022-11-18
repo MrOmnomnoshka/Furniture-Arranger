@@ -1,5 +1,3 @@
-import socket
-
 import settings
 from colors import rand_color
 import pygame
@@ -10,22 +8,26 @@ import re
 class SpriteObject(pygame.sprite.Sprite):
     old_scale = settings.SCALE
     old_x_offset, old_y_offset = settings.X_OFFSET, settings.Y_OFFSET
+    old_center, old_angle = (0, 0), 0
 
     # For self rotated rect
-    old_center, old_angle = (0, 0), 0
     rotated_rect = None
     offset_rotated_rect = None
 
     original_image = None  # Every sprite has its own image
-
     mouse_diff = Vector2(0, 0)  # for sprite moving with mouse
 
-    def __init__(self, width=50, height=50, depth=50, angle=0, x=0, y=0, z=0, optional=False):  # TODO: need xyz here or just in 'set_pos'?
+    rules = dict()  # dict with rules from one object to another
+
+    fitness_surface = None  # Surface to render fitness
+
+    def __init__(self, width=50, height=50, depth=50, angle=0, x=0, y=0, z=0,
+                 optional=False):  # TODO: need xyz here or just in 'set_pos'?
         pygame.sprite.Sprite.__init__(self)
 
         # self.rules = dict()  # dict with rules for each sprite
-        if not hasattr(self, "rules"):
-            self.rules = dict()
+        # if not hasattr(self, "rules"):
+        #     self.rules = dict()
 
         self.offsets = {"top": 0, "bottom": 0, "left": 0, "right": 0}  # offsets - dict with offsets for each side
         self.set_unique_params(width, height, depth)  # set rules, offsets and (width, height, depth) parameters
@@ -79,6 +81,7 @@ class SpriteObject(pygame.sprite.Sprite):
 
     def rotate(self, angle):
         self.angle = (self.angle + angle) % 360
+        # print(self.angle)
         self.update_image()
 
     def update_image(self):
@@ -106,10 +109,11 @@ class SpriteObject(pygame.sprite.Sprite):
         else:  # No Image. just color
             if not hasattr(self, "color"):  # Hasn't color
                 self.color = rand_color()
-            original_image = pygame.Surface([self.width, self.height], pygame.SRCALPHA)  # SRCALPHA is for alpha background (for rect rotation)
+            original_image = pygame.Surface([self.width, self.height],
+                                            pygame.SRCALPHA)  # SRCALPHA is for alpha background (for rect rotation)
             original_image.fill(self.color)
 
-        return pygame.transform.scale(original_image, (self.width*scale, self.height*scale))
+        return pygame.transform.scale(original_image, (self.width * scale, self.height * scale))
 
     def convert_self_side(self, side):
         rect = self.get_rotated_rect()  # [topleft, topright, bottomright, bottomleft]
@@ -126,7 +130,7 @@ class SpriteObject(pygame.sprite.Sprite):
         for side in self.offsets:
             if self.offsets[side] > 0:  # if distance greater than 0 move side to 'imaginary' side
                 side_vec = convert_side(side, rotated_rect_copy)
-                new_other_side_vec = move_side_to_distance(self.offsets[side], side, self, side_vec)
+                new_other_side_vec = move_to_distance_by_side(self.offsets[side], side, self, side_vec)
 
                 for i, side_point in enumerate(side_vec):
                     for j, point in enumerate(rotated_rect_copy):
@@ -135,75 +139,118 @@ class SpriteObject(pygame.sprite.Sprite):
                             break
         self.offset_rotated_rect = rotated_rect_copy
 
-    def get_other_rect_from_rule(self, other_sprite, other_sides, desired_dist):
-        if not any(other_sprite in rule_sprite for rule_sprite in self.rect_rotated_rules) or True:  # TODO: in real time other_sprite pos/angle can be changed
-            other_rect = [Vector2(point) for point in other_sprite.get_rotated_rect()]
+    def rule_distance_to_sprite(self, sprite, rule):
+        if "sides" not in rule:
+            return 0
 
-            # Append imaginary dist to all sides
-            for other_side in other_sides:
-                if desired_dist > 0:  # if distance greater than 0 move side to 'imaginary' side
-                    other_side_vec = convert_side(other_side, other_rect)
-                    new_other_side_vec = move_side_to_distance(desired_dist, other_side, other_sprite, other_side_vec)
+        if len(rule["sides"]) == 3:
+            self_sides, other_sides, desired_dist_str = rule["sides"]
+            related = False
+        else:  # len == 4
+            self_sides, other_sides, desired_dist_str, related = rule["sides"]
 
-                    for i, side_point in enumerate(other_side_vec):
-                        for j, point in enumerate(other_rect):
-                            if point == side_point:
-                                other_rect[j] = new_other_side_vec[i]
-                                break
-            # return other_rect
-            self.rect_rotated_rules.append((other_sprite, other_rect))
-        for sprite_rule in self.rect_rotated_rules:
-            if sprite_rule[0] == other_sprite:
-                return sprite_rule[1]
-
-    def rule_distance_to_sprite(self, other_sprite, rule):
-        self_sides, other_sides, desired_dist_str = rule["sides"]
-        self_sides, other_sides = translate_side(self_sides), translate_side(other_sides)
+        any_any = True if self_sides == "any" and other_sides == "any" else False
+        self_sides, other_sides = translate_sides(self_sides), translate_sides(other_sides)
+        min_dists = []
 
         if type(desired_dist_str) == str:  # ">50" or "<50"
-            # check if ><= sign in str
-            if re.search(r"[><=]", desired_dist_str):
-                desired_sign = re.search(r"[><=]", desired_dist_str).group()
+            # check if <> sign in str
+            if re.search(r"[<>]", desired_dist_str):
+                desired_sign = re.search(r"[<>]", desired_dist_str).group()
                 desired_dist = int(desired_dist_str[1:])
+                max_dist = max(settings.ROOM_WIDTH, settings.ROOM_HEIGHT) * 2
 
-                if desired_sign == ">":  # TODO: rethink it as imaginary line and move by this line to desired dist
-                    other_rect = self.get_other_rect_from_rule(other_sprite, other_sides, desired_dist)
+                # FAST way to calc 'any' to 'any' distance
+                if any_any:
+                    dist = min(sprite.calc_nearest_distance(self)[0], self.calc_nearest_distance(sprite)[0])
+                    sign = 1 if desired_sign == ">" else -1
+                    return max(0, (desired_dist - dist) * sign)
 
-                    if get_rotated_rect_intersections(self.get_rotated_rect(), other_rect):
-                        return settings.COLLISION_PENALTY // 100  # penalty
-                    else:
-                        return 0
-                else:
-                    print("TODO: add < sign")
-                    return 0
+                for self_side in self_sides:
+                    self_vec = self.convert_self_side(self_side)
+                    for other_side in other_sides:
+                        # FIND DIST TO LINE
+                        other_vec = sprite.convert_self_side(other_side)
+
+                        if type(other_vec) == tuple:  # other line to self point/line
+                            top = other_vec[::-1]
+                            bottom = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
+                            left = bottom[1], top[0]
+                            right = top[1], bottom[0]
+
+                            left_r, right_r = find_related_sides(related, other_side, other_sides)
+                            closest = find_closest_point(self_vec, top) if type(self_vec) == tuple else self_vec
+                            if (ccw(closest, *left) or left_r) and (ccw(closest, *right) or right_r) and ccw(closest, *top):
+                                dist = find_shortest_distance(self_vec, top)[0]
+                                if desired_sign == ">":
+                                    dist_to_range = max(0, desired_dist - dist)
+                                else:
+                                    dist_to_range = max(0, dist - desired_dist)
+                            else:
+                                if desired_sign == ">":
+                                    # Move all sides to max_dist (except top side, it moves to desired_dist)
+                                    top = move_to_distance_by_side(desired_dist, other_side, sprite, top)
+                                    bottom = move_to_distance_by_side(max_dist, other_side, sprite, bottom)
+                                    left = bottom[1], top[0]
+                                    right = top[1], bottom[0]
+
+                                # "dist_to_range" - distance to the nearest point at any side of imaginary rect
+                                dist_to_range = min(find_shortest_distance(self_vec, left)[0],
+                                                    find_shortest_distance(self_vec, right)[0],
+                                                    find_shortest_distance(self_vec, top)[0],
+                                                    find_shortest_distance(self_vec, bottom)[0])
+
+                        else:  # other point to self point/line
+                            other_vec_moved = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
+                            if desired_sign == ">":
+                                line_to_follow = move_to_distance_by_side(max_dist, other_side, sprite, other_vec_moved), other_vec_moved
+                            else:  # if desired_sign == "<":
+                                line_to_follow = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec), other_vec
+
+                            # "dist_to_range" - distance to the nearest point to imaginary line
+                            dist_to_range = find_shortest_distance(self_vec, line_to_follow)[0]
+
+                        # At the end add it to min_dists
+                        min_dists.append(dist_to_range)
+
             elif desired_dist_str == "any":
-                # for any dist on a line/point
-                # TODO: here can be lines - [(x1,y1), (x2,y2)], mb add it like in 'int' bellow?
-
-                other_side_vec = other_sprite.convert_self_side(other_sides[0])
-                max_dist = max(settings.ROOM_WIDTH, settings.ROOM_HEIGHT)
-                other_side_vec_moved = move_side_to_distance(max_dist, other_sides[0], other_sprite, other_side_vec)
-                line_to_follow = other_side_vec_moved, other_side_vec
-
-                dist = find_shortest_distance(self.convert_self_side(self_sides[0]), line_to_follow)[0]
-
-                return dist
-            elif desired_dist_str == "no":  # TODO: remake to "no" to "any"      and     'any' to '<0'
-                return 0
+                min_dists.append(0)
             else:
                 raise Exception("TODO: add other variants of dist rules!")
 
         else:  # type(int) - "50"
             desired_dist = desired_dist_str
-            min_dists = []
+
+            # FAST way to calc 'any' to 'any' distance
+            # TODO: all code from above is the same, combine and refactor
+            if any_any:
+                dist = min(sprite.calc_nearest_distance(self)[0], self.calc_nearest_distance(sprite)[0])
+                return abs(desired_dist - dist)
+
             for self_side in self_sides:
+                self_vec = self.convert_self_side(self_side)
                 for other_side in other_sides:
-                    other_side_vec = other_sprite.convert_self_side(other_side)
-                    if desired_dist > 0:  # if distance greater than 0 move side to 'imaginary' side
-                        other_side_vec = move_side_to_distance(desired_dist, other_side, other_sprite, other_side_vec)
-                    min_dists.append(find_shortest_distance(self.convert_self_side(self_side), other_side_vec)[0])
-            min_d = min(min_dists)  # Closest dist from side to side (or point)
-            return min_d
+                    other_vec = sprite.convert_self_side(other_side)
+
+                    if type(other_vec) == tuple:  # other line to self point/line
+                        top = other_vec[::-1]
+                        bottom = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
+                        left = bottom[1], top[0]
+                        right = top[1], bottom[0]
+
+                        left_r, right_r = find_related_sides(related, other_side, other_sides)
+                        closest = find_closest_point(self_vec, top) if type(self_vec) == tuple else self_vec
+                        if (ccw(closest, *left) or left_r) and (ccw(closest, *right) or right_r) and ccw(closest, *top):
+                            min_dists.append(abs(find_shortest_distance(self_vec, other_vec)[0] - desired_dist))
+                        else:
+                            min_dists.append(find_shortest_distance(closest, bottom)[0])
+
+                    else:  # other point to self point/line
+                        # other_vec_moved = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
+                        point_to = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
+                        min_dists.append(find_shortest_distance(self_vec, point_to)[0])
+
+        return min(min_dists)  # Closest dist from side to side (or point)
 
     def calc_nearest_distance(self, sprite):
         a, b, c, d = self.get_rotated_rect()
@@ -217,6 +264,9 @@ class SpriteObject(pygame.sprite.Sprite):
         return min([min(res, key=lambda x: x[0]) for res in results], key=lambda x: x[0])
 
     def get_angle_to_sprite(self, sprite, rule):
+        if "angle" not in rule:
+            return 0
+
         current_diff = convert_360_to_180(self.angle - sprite.angle)  # from -180 to 180
 
         angle_desired = rule["angle"]
@@ -257,7 +307,7 @@ class SpriteObject(pygame.sprite.Sprite):
             self.old_center = center
             rect = self.original_image.get_rect(center=center)
             # rect = self.original_image.get_rect(topleft=self.rect.topleft)
-            pts = [rect.topleft, rect.topright, rect.bottomright, rect.bottomleft]
+            pts = (rect.topleft, rect.topright, rect.bottomright, rect.bottomleft)
             rect_angle = [(Vector2(p) - center).rotate(-self.angle) + center for p in pts]
             self.rotated_rect = rect_angle  # Replace it with new one
 

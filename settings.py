@@ -14,9 +14,11 @@ SCALE = 1  # Масштаб отрисовки
 MAIN_ITERATIONS = 5  # Количество различных генераций комнаты с мебелью
 
 # Controls
-DEBUG = True  # Включить отладочный режим
+DEBUG = False  # Включить отладочный режим
 H_DEBUG = False
 START_GA = True  # Запускать генетический алгоритм или нет
+FITNESS_GRADIENT_MODE = False  # Режим отрисовки градиента фитнесса у активного объекта
+FG_PRECISION = 10  # Точность отрисовки градиента фитнесса
 INIT_EVERY_N = True  # Создать интерактивный режим для отрисовки каждой N-ой итерации
 DRAW_EVERY_OBJ = False  # Рисовать каждый спрайт по отдельности
 FPS_IN_EVERY_N = 60  # 18  # Скорость отрисовки каждой N-ой итерации в секунду
@@ -26,7 +28,7 @@ LANGUAGE = "EN"  #RU  # Язык интерфейса
 # For GA
 MAX_NUM_ITERATION = 600  # Максимальное количество итераций
 POPULATION_SIZE = 100  # Размер популяции
-MAX_ITERATION_WITHOUT_IMPROV = 200  # Максимальное количество итераций без улучшения
+MAX_ITERATION_WITHOUT_IMPROV = 150  # Максимальное количество итераций без улучшения
 MUTATION_PROBABILITY = 0.50  # Вероятность мутации
 PARENTS_PORTION = 0.15  # Доля родителей в популяции
 ELIT_RATIO = PARENTS_PORTION - 0.01  # Доля элитных особей в популяции
@@ -43,4 +45,5 @@ FONT, CLOCK, SCREEN = None, None, None  # Шрифт, часы, экран
 ALL_OBJECTS, SPRITE_ORDER = list(), list()  # Все объекты, порядок отрисовки
 CURRENT_GA_SPRITE = None  # Текущий спрайт для GA
 MOUSE_MOVING_SPRITE = None  # Текущий спрайт для перемещения мышкой (для отладки)
+FG_MODE_RECALC = False  # Пересчёт градиента фитнесса
 #  #### DO NOT CHANGE ####
