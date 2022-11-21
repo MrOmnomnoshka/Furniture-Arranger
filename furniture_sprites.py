@@ -53,7 +53,7 @@ class TV(Furniture):
     image_path = "images/furniture/tv.png"
 
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
-             DoubleBed: {"sides": ("midbottom", "midbottom", "any"), "angle": 180}}
+             DoubleBed: {"sides": ("midbottom", "midbottom", ">0"), "angle": 180}}
     offsets_to_this = {"bottom": 100}
 
 
@@ -70,7 +70,7 @@ class Sofa(Furniture):
     width, height, depth = 180, 86, 86
     image_path = "images/furniture/sofa.png"
 
-    rules = {TV: {"sides": ("midbottom", "midbottom", 200), "angle": 180}}
+    rules = {TV: ({"sides": ("midbottom", "midbottom", "[150-200]"), "angle": 180})}
 
 
 class FloorLamp(Furniture):

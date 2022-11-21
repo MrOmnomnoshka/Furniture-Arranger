@@ -76,11 +76,15 @@ def find_closest_point(self_vec, side):
 def find_related_sides(related, current_side, all_sides):
     left_r, right_r = False, False  # default is - cut left right segments
     if related:  # connect left right segments if related and if they are exists
-        sides = ("top", "right", "bottom", "left")
-        my_index = sides.index(current_side)
-        left_r = sides[(my_index + 1) % 4] in all_sides
-        right_r = sides[(my_index - 1) % 4] in all_sides
+        left_r = get_side_related(current_side, 1) in all_sides
+        right_r = get_side_related(current_side, -1) in all_sides
     return left_r, right_r
+
+
+def get_side_related(current_side, related_index):
+    sides = ("top", "right", "bottom", "left")
+    my_index = sides.index(current_side)
+    return sides[(my_index + related_index) % 4]
 
 
 def point_to_line(pnt, start, end):  # TODO: make line to line calculation
@@ -190,15 +194,15 @@ def convert_side(side, rect):
     elif side == "left":
         return Vector2(rect[3]), Vector2(rect[0])
     elif side == "midtop":
-        return (rect[1] - rect[0]) / 2 + rect[0]  # TODO: redo as ([1] + [0]) / 2
-    elif side == "midbottom":
-        return (rect[2] - rect[3]) / 2 + rect[3]
-    elif side == "midleft":
-        return (rect[3] - rect[0]) / 2 + rect[0]
+        return (rect[1] + rect[0]) / 2
     elif side == "midright":
-        return (rect[2] - rect[1]) / 2 + rect[1]
+        return (rect[2] + rect[1]) / 2
+    elif side == "midbottom":
+        return (rect[2] + rect[3]) / 2
+    elif side == "midleft":
+        return (rect[3] + rect[0]) / 2
     elif side == "center":
-        return (rect[2] - rect[0]) / 2 + rect[0]
+        return (rect[2] + rect[0]) / 2
     elif side == "topleft":
         return rect[0]
     elif side == "topright":

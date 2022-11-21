@@ -215,12 +215,13 @@ def get_fitness_surface(sprite):
     start_pos = sprite.rect.center  # Save sprite start position
     precision = settings.FG_PRECISION
     surf = pygame.Surface((settings.ROOM_WIDTH, settings.ROOM_HEIGHT), pygame.SRCALPHA)
+    half_precision = precision // 2
 
     for y in range(0, settings.ROOM_HEIGHT, precision):
         for x in range(0, settings.ROOM_WIDTH, precision):
             sprite.rect.center = (x, y)
             fit = sprite.get_fitness()
-            # color = (0, 0, 0, 0)
+            color = (0, 0, 0, 0)
 
             # # Only Green
             # if fit == 0:
@@ -232,19 +233,22 @@ def get_fitness_surface(sprite):
             # elif fit >= 100_000:
             #     color = red_a
 
-            # # green->red (X2)
-            # max_fit = min(255, fit*2)
-            # color = (max_fit, 255-max_fit, 0, 100)
+            # green->red (X2) (STRONG GREEN)
+            max_fit = min(255, fit*2)
+            if max_fit == 0:
+                color = (0, 255, 0, 255)
+            else:
+                color = (max_fit, 255-max_fit, 0, 100)
 
-            # green->yellow->red
-            max_fit = min(510, fit)
-            if max_fit <= 255:
-                color = (max_fit, 255, 0, 100)
-            else:  # > 255
-                color = (255, 510 - max_fit, 0, 100)
+            # # green->yellow->red
+            # max_fit = min(510, fit)
+            # if max_fit <= 255:
+            #     color = (max_fit, 255, 0, 100)
+            # else:  # > 255
+            #     color = (255, 510 - max_fit, 0, 100)
 
             # Draw on that surface
-            surf.fill(color, (x - precision//2, y - precision//2, precision, precision))
+            surf.fill(color, (x - half_precision, y - half_precision, precision, precision))
     sprite.rect.center = start_pos  # Load back sprite to its start position
     return surf
 
@@ -336,6 +340,12 @@ def draw_all(draw_bg=True):
         # # Draw yellow rect from room width and height
         # pos_rect = (add_offset_to_position(Vector2(0, 0)), Vector2(settings.ROOM_WIDTH, settings.ROOM_HEIGHT) * settings.SCALE)
         # pygame.draw.rect(screen, dark_yellow, pos_rect, draw_width)
+
+        if settings.DEBUG_POINTS_TO_DRAW:
+            for point in settings.DEBUG_POINTS_TO_DRAW:
+                pos = add_offset_to_position(point)
+                pygame.draw.circle(screen, red, pos, draw_width*2)
+
 
     # ======= Left up corner info =======
     # Show FPS

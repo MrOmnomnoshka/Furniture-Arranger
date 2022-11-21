@@ -134,7 +134,7 @@ def set_room_params(room_size_sqm):
 
 def main():
     # room_size_sqm = float(input("Enter room size in sq meters: "))
-    room_size_sqm = 32  #32  # 24.9  # 32
+    room_size_sqm = 25  #32  # 24.9  # 32
 
     for amount in range(settings.MAIN_ITERATIONS):
         set_room_params(room_size_sqm)
@@ -144,11 +144,13 @@ def main():
         settings.SPRITE_ORDER = list()
 
         # furniture_obj = room_rules.get_bedroom_guest_17__24_9m()
-        # furniture_obj = room_rules.get_bedroom_master_17__24_9m()
+        furniture_obj = room_rules.get_bedroom_master_17__24_9m()
         # furniture_obj = room_rules.living_room_9__15m()
         # furniture_obj = room_rules.all_furniture()
-        furniture_obj = room_rules.living_room_BIG()
-        # furniture_obj = [furniture_sprites.DoubleBed(x=300, y=220), furniture_sprites.Wardrobe(x=100, y=244)]
+        # furniture_obj = room_rules.living_room_BIG()
+        # x = settings.ROOM_WIDTH // 2
+        # furniture_obj = [furniture_sprites.TV(x=x, y=200), furniture_sprites.Sofa(x=x, y=255, angle=180)]
+        # furniture_obj = [furniture_sprites.DoubleBed(), furniture_sprites.Wardrobe()]
 
         start_time = time()
         for i, f_obj in enumerate(furniture_obj):

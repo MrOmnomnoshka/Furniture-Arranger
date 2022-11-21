@@ -139,6 +139,138 @@ class SpriteObject(pygame.sprite.Sprite):
                             break
         self.offset_rotated_rect = rotated_rect_copy
 
+    def get_dist_to_range(self, desired_sign, desired_dist, other_sides, other_side, self_side, related, sprite, dist_end):
+        max_dist = max(settings.ROOM_WIDTH, settings.ROOM_HEIGHT) * 2
+        self_vec = self.convert_self_side(self_side)
+        # FIND DIST TO LINE
+        other_vec = sprite.convert_self_side(other_side)
+
+        top = other_vec[::-1]
+        bottom = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
+        left, right = (bottom[1], top[0]), (top[1], bottom[0])
+
+        # if self_vec is line make it the nearest point on that line to top side
+        closest = find_closest_point(self_vec, top) if type(self_vec) == tuple else self_vec
+        dist = find_shortest_distance(closest, top)[0]
+
+        left_related, right_related = find_related_sides(related, other_side, other_sides)
+        to_the_left_of_border = ccw(closest, *left) or left_related
+        to_the_right_of_border = ccw(closest, *right) or right_related
+        under_top = ccw(closest, *top)
+
+        if to_the_left_of_border and to_the_right_of_border and under_top:  # get left right sides under top
+            dist_diff = desired_dist - dist
+            if desired_sign == ">":
+                dist_to_range = max(0, dist_diff)
+            elif desired_sign == "<":
+                dist_to_range = max(0, -dist_diff)
+            elif desired_sign == "=":
+                dist_to_range = abs(dist_diff)
+            else:  # if desired_sign == "[]":
+                dist_to_range = max(0, dist_diff, dist - dist_end)  # [] is '> dist_diff' and '< -dist_end'
+
+        elif not under_top:  # if above top
+            if desired_sign == ">":
+                lines_to_follow = (bottom,)
+            elif desired_sign == "<":
+                lines_to_follow = (top,)
+            elif desired_sign == "=":
+                lines_to_follow = (bottom,)
+            else:  # if desired_sign == "[]":
+                lines_to_follow = [bottom]  # always follow bottom line
+                if left_related:  # if left side is related follow left line
+                    left_seg = tuple(move_to_distance_by_side(d, get_side_related(other_side, 1), sprite,
+                                                              top[0]) for d in (dist_end, desired_dist))
+                    lines_to_follow.append(left_seg)
+                if right_related:  # if right side is related follow right line
+                    right_seg = tuple(move_to_distance_by_side(d, get_side_related(other_side, -1), sprite,
+                                                               top[1]) for d in (dist_end, desired_dist))
+                    lines_to_follow.append(right_seg)
+
+            dist_to_range = min((find_shortest_distance(closest, line)[0] for line in lines_to_follow))
+        else:  # under top, but not to the left and right
+            if desired_sign == ">":
+                # Move all sides to max_dist (except top side, it moves to desired_dist)
+                top = move_to_distance_by_side(desired_dist, other_side, sprite, top)
+                bottom = move_to_distance_by_side(max_dist, other_side, sprite, bottom)
+                left, right = (bottom[1], top[0]), (top[1], bottom[0])
+                lines_to_follow = (left, right, top, bottom)
+            elif desired_sign == "<":
+                lines_to_follow = (left, right, top, bottom)
+            elif desired_sign == "=":
+                lines_to_follow = (bottom,)
+            else:  # if desired_sign == "[]":
+                seg_bottom = move_to_distance_by_side(dist_end, other_side, sprite, top)
+                left_seg, right_seg = (bottom[1], seg_bottom[0]), (seg_bottom[1], bottom[0])
+                lines_to_follow = (bottom, right_seg, left_seg)
+
+            dist_to_range = min((find_shortest_distance(closest, line)[0] for line in lines_to_follow))
+
+        return dist_to_range
+
+    def calc_mle_rule(self, desired_sign, desired_dist, any_any, self_sides, other_sides, related, sprite, dist_end=None):
+        min_dists = list()
+        all_dists = list()
+
+        # FAST way to calc 'any' to 'any' distance
+        if any_any:
+            dist = min(sprite.calc_nearest_distance(self)[0], self.calc_nearest_distance(sprite)[0])
+            dist_diff = desired_dist - dist
+            if desired_sign == ">":
+                return (max(0, dist_diff),)
+            elif desired_sign == "<":
+                return (max(0, -dist_diff),)
+            elif desired_sign == "=":
+                return (abs(dist_diff),)
+            elif desired_sign == "[]":
+                return (max(0, dist_diff, dist - dist_end),)
+
+        max_dist = max(settings.ROOM_WIDTH, settings.ROOM_HEIGHT) * 2
+        for self_side in self_sides:
+            self_vec = self.convert_self_side(self_side)
+            for other_side in other_sides:
+                # FIND DIST TO LINE
+                other_vec = sprite.convert_self_side(other_side)
+
+                if type(other_vec) == tuple:  # other line to self point/line
+                    top = other_vec[::-1]
+                    # if self_vec is line make it the nearest point on that line to top side
+                    closest = find_closest_point(self_vec, top) if type(self_vec) == tuple else self_vec
+                    dist = find_shortest_distance(closest, top)[0]
+                    all_dists.append((dist, other_side, self_side))  # find min dist and count it later
+
+                else:  # other point to self point/line
+                    other_vec_moved = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
+                    if desired_sign in "><":
+                        if desired_sign == ">":
+                            line_to_follow = move_to_distance_by_side(max_dist, other_side, sprite,
+                                                                      other_vec_moved), other_vec_moved
+                        else:  # if desired_sign == "<":
+                            line_to_follow = other_vec, other_vec_moved
+
+                        dist_to_range = find_shortest_distance(self_vec, line_to_follow)[0]
+                    elif desired_sign == "=":
+                        dist_to_range = find_shortest_distance(self_vec, other_vec_moved)[0]
+                    else:  # if desired_sign == "[]":
+                        end_point = move_to_distance_by_side(dist_end, other_side, sprite, other_vec)
+                        dist_to_range = find_shortest_distance(self_vec, (other_vec_moved, end_point))[0]
+
+                    # At the end add it to min_dists
+                    # "dist_to_range" - distance to the nearest point on imaginary line
+                    min_dists.append(dist_to_range)
+
+        if all_dists:  # it was line to self point/line
+            # find min pair of dist and count it
+            min_dist = min(all_dists, key=lambda x: x[0])[0]
+            min_indices = (i for i, (d, _, _) in enumerate(all_dists) if d == min_dist)
+            for i in min_indices:  # count all min dists (in case of "left, right, TOP", only TOP is correct to count)
+                _, other_side, self_side = all_dists[i]
+                dist_to_range = self.get_dist_to_range(desired_sign, desired_dist, other_sides, other_side, self_side,
+                                                       related, sprite, dist_end)
+                min_dists.append(dist_to_range)
+
+        return min_dists
+
     def rule_distance_to_sprite(self, sprite, rule):
         if "sides" not in rule:
             return 0
@@ -154,65 +286,16 @@ class SpriteObject(pygame.sprite.Sprite):
         min_dists = []
 
         if type(desired_dist_str) == str:  # ">50" or "<50"
-            # check if <> sign in str
-            if re.search(r"[<>]", desired_dist_str):
-                desired_sign = re.search(r"[<>]", desired_dist_str).group()
+            interval = re.findall(r"\[.*\]", desired_dist_str)
+            mle = re.findall(r"[><=]", desired_dist_str)
+            if interval:
+                d_from, d_to = map(int, interval[0][1:-1].split("-"))
+                min_dists = self.calc_mle_rule("[]", d_from, any_any, self_sides, other_sides, related, sprite, d_to)
+            elif mle:
+                desired_sign = mle[0]
                 desired_dist = int(desired_dist_str[1:])
-                max_dist = max(settings.ROOM_WIDTH, settings.ROOM_HEIGHT) * 2
-
-                # FAST way to calc 'any' to 'any' distance
-                if any_any:
-                    dist = min(sprite.calc_nearest_distance(self)[0], self.calc_nearest_distance(sprite)[0])
-                    sign = 1 if desired_sign == ">" else -1
-                    return max(0, (desired_dist - dist) * sign)
-
-                for self_side in self_sides:
-                    self_vec = self.convert_self_side(self_side)
-                    for other_side in other_sides:
-                        # FIND DIST TO LINE
-                        other_vec = sprite.convert_self_side(other_side)
-
-                        if type(other_vec) == tuple:  # other line to self point/line
-                            top = other_vec[::-1]
-                            bottom = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
-                            left = bottom[1], top[0]
-                            right = top[1], bottom[0]
-
-                            left_r, right_r = find_related_sides(related, other_side, other_sides)
-                            closest = find_closest_point(self_vec, top) if type(self_vec) == tuple else self_vec
-                            if (ccw(closest, *left) or left_r) and (ccw(closest, *right) or right_r) and ccw(closest, *top):
-                                dist = find_shortest_distance(self_vec, top)[0]
-                                if desired_sign == ">":
-                                    dist_to_range = max(0, desired_dist - dist)
-                                else:
-                                    dist_to_range = max(0, dist - desired_dist)
-                            else:
-                                if desired_sign == ">":
-                                    # Move all sides to max_dist (except top side, it moves to desired_dist)
-                                    top = move_to_distance_by_side(desired_dist, other_side, sprite, top)
-                                    bottom = move_to_distance_by_side(max_dist, other_side, sprite, bottom)
-                                    left = bottom[1], top[0]
-                                    right = top[1], bottom[0]
-
-                                # "dist_to_range" - distance to the nearest point at any side of imaginary rect
-                                dist_to_range = min(find_shortest_distance(self_vec, left)[0],
-                                                    find_shortest_distance(self_vec, right)[0],
-                                                    find_shortest_distance(self_vec, top)[0],
-                                                    find_shortest_distance(self_vec, bottom)[0])
-
-                        else:  # other point to self point/line
-                            other_vec_moved = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
-                            if desired_sign == ">":
-                                line_to_follow = move_to_distance_by_side(max_dist, other_side, sprite, other_vec_moved), other_vec_moved
-                            else:  # if desired_sign == "<":
-                                line_to_follow = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec), other_vec
-
-                            # "dist_to_range" - distance to the nearest point to imaginary line
-                            dist_to_range = find_shortest_distance(self_vec, line_to_follow)[0]
-
-                        # At the end add it to min_dists
-                        min_dists.append(dist_to_range)
-
+                min_dists = self.calc_mle_rule(desired_sign, desired_dist, any_any, self_sides, other_sides, related,
+                                               sprite)
             elif desired_dist_str == "any":
                 min_dists.append(0)
             else:
@@ -220,35 +303,7 @@ class SpriteObject(pygame.sprite.Sprite):
 
         else:  # type(int) - "50"
             desired_dist = desired_dist_str
-
-            # FAST way to calc 'any' to 'any' distance
-            # TODO: all code from above is the same, combine and refactor
-            if any_any:
-                dist = min(sprite.calc_nearest_distance(self)[0], self.calc_nearest_distance(sprite)[0])
-                return abs(desired_dist - dist)
-
-            for self_side in self_sides:
-                self_vec = self.convert_self_side(self_side)
-                for other_side in other_sides:
-                    other_vec = sprite.convert_self_side(other_side)
-
-                    if type(other_vec) == tuple:  # other line to self point/line
-                        top = other_vec[::-1]
-                        bottom = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
-                        left = bottom[1], top[0]
-                        right = top[1], bottom[0]
-
-                        left_r, right_r = find_related_sides(related, other_side, other_sides)
-                        closest = find_closest_point(self_vec, top) if type(self_vec) == tuple else self_vec
-                        if (ccw(closest, *left) or left_r) and (ccw(closest, *right) or right_r) and ccw(closest, *top):
-                            min_dists.append(abs(find_shortest_distance(self_vec, other_vec)[0] - desired_dist))
-                        else:
-                            min_dists.append(find_shortest_distance(closest, bottom)[0])
-
-                    else:  # other point to self point/line
-                        # other_vec_moved = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
-                        point_to = move_to_distance_by_side(desired_dist, other_side, sprite, other_vec)
-                        min_dists.append(find_shortest_distance(self_vec, point_to)[0])
+            min_dists = self.calc_mle_rule("=", desired_dist, any_any, self_sides, other_sides, related, sprite)
 
         return min(min_dists)  # Closest dist from side to side (or point)
 

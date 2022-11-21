@@ -46,4 +46,5 @@ ALL_OBJECTS, SPRITE_ORDER = list(), list()  # Все объекты, поряд�
 CURRENT_GA_SPRITE = None  # Текущий спрайт для GA
 MOUSE_MOVING_SPRITE = None  # Текущий спрайт для перемещения мышкой (для отладки)
 FG_MODE_RECALC = False  # Пересчёт градиента фитнесса
+DEBUG_POINTS_TO_DRAW = list()  # Интересующие нас точки (для отладки)
 #  #### DO NOT CHANGE ####
