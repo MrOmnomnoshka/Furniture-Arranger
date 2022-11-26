@@ -23,7 +23,8 @@ def generate_room_parameters(room_size, accuracy=2):
 
 def generate_object_in_walls(obj, width, depth, walls, objects_in_walls, z=0, restart=0):
     from random import choice, randrange
-    from pygame.math import Vector2
+    from math_2d import rotate_vec_np
+    from numpy import array
 
     if restart > 100:
         raise Exception("Can't fit this object in the room.", obj)
@@ -34,8 +35,9 @@ def generate_object_in_walls(obj, width, depth, walls, objects_in_walls, z=0, re
         return generate_object_in_walls(obj, width, depth, walls, objects_in_walls, z, restart + 1)
 
     side = wall.convert_self_side("midleft")
-    random_pos = Vector2(randrange(fit_in_wall) + width // 2 + wall.height, 0).rotate(-wall.angle)
-    new_obj = obj(width, wall.height, depth, wall.angle, side.x + random_pos.x, side.y + random_pos.y, z)
+    rand_pos = array((randrange(fit_in_wall) + width // 2 + wall.height, 0), float)
+    random_pos = rotate_vec_np(rand_pos, -wall.angle)
+    new_obj = obj(width, wall.height, depth, wall.angle, side[0] + random_pos[0], side[1] + random_pos[1], z)
 
     for old_obj in objects_in_walls:
         # TODO: make right angle intersection (example angle 45)
@@ -48,14 +50,14 @@ def generate_object_in_walls(obj, width, depth, walls, objects_in_walls, z=0, re
 def generate_walls_rectangle():
     walls = list()
     # generate 4 walls in rectangular form
-    walls.append(Wall(settings.ROOM_HEIGHT, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 90))
-    walls[-1].set_pos(0, 0)  # left
     walls.append(Wall(settings.ROOM_WIDTH, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 0))
     walls[-1].set_pos(0, 0)  # top
-    walls.append(Wall(settings.ROOM_HEIGHT, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 270))
+    walls.append(Wall(settings.ROOM_HEIGHT, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 90))
     walls[-1].set_pos(settings.ROOM_WIDTH - settings.WALLS_WIDTH, 0)  # right
     walls.append(Wall(settings.ROOM_WIDTH, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 180))
     walls[-1].set_pos(0, settings.ROOM_HEIGHT - settings.WALLS_WIDTH)  # bottom
+    walls.append(Wall(settings.ROOM_HEIGHT, settings.WALLS_WIDTH, settings.ROOM_DEPTH, 270))
+    walls[-1].set_pos(0, 0)  # left
     return walls
 
 
@@ -134,7 +136,7 @@ def set_room_params(room_size_sqm):
 
 def main():
     # room_size_sqm = float(input("Enter room size in sq meters: "))
-    room_size_sqm = 25  #32  # 24.9  # 32
+    room_size_sqm = 36  #32  # 24.9  # 32
 
     for amount in range(settings.MAIN_ITERATIONS):
         set_room_params(room_size_sqm)
@@ -144,13 +146,13 @@ def main():
         settings.SPRITE_ORDER = list()
 
         # furniture_obj = room_rules.get_bedroom_guest_17__24_9m()
-        furniture_obj = room_rules.get_bedroom_master_17__24_9m()
+        # furniture_obj = room_rules.get_bedroom_master_17__24_9m()
         # furniture_obj = room_rules.living_room_9__15m()
         # furniture_obj = room_rules.all_furniture()
-        # furniture_obj = room_rules.living_room_BIG()
+        furniture_obj = room_rules.living_room_BIG()
         # x = settings.ROOM_WIDTH // 2
         # furniture_obj = [furniture_sprites.TV(x=x, y=200), furniture_sprites.Sofa(x=x, y=255, angle=180)]
-        # furniture_obj = [furniture_sprites.DoubleBed(), furniture_sprites.Wardrobe()]
+        # furniture_obj = [furniture_sprites.DoubleBed(), furniture_sprites.CarpetBig()]
 
         start_time = time()
         for i, f_obj in enumerate(furniture_obj):
@@ -182,6 +184,13 @@ def main():
 
         print(f"Time takes to generate {len(furniture_obj)} objects: {time() - start_time:.2f} seconds")
         draw_loop(f"Done! {amount + 1}/{settings.MAIN_ITERATIONS}")
+
+        # TODO: 1 на подумать - передавать потом готовый результат в функцию, которая оптимизирует не каждый объект, а всю
+        #  комнату сразу, и приблизить к +-0 фитнесу (некоторые вещи не делятся на 2 ровно, и их фитнесс всегда больше 1
+        #  или не становятся вплотную к другим)
+        # TODO: 2 добавить jit к просчету фитнесса
+        # TODO: 3 Бич всех ГА - скорость VS память, сохранять просчет фитнесса и не повторять его, если известен
+        # TODO: 4 Переделать на кастомную функцию мутации, ибо это плохо ставит если нужен чисто угол, или чисто координаты (у стен тупит)
 
     # # get different solutions
     # various_indexes = get_various_indexes(solution)

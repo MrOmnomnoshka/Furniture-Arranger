@@ -11,7 +11,7 @@ class DoubleBed(Furniture):
 
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
              Window: {"angle": "perpendicular", "required": True}}
-    offsets_to_this = {"top": 0, "bottom": 50, "left": 20, "right": 20}
+    offsets_to_this = {"bottom": 50, "left": 20, "right": 20}
 
 
 class SingleBed(Furniture):
@@ -19,7 +19,7 @@ class SingleBed(Furniture):
     image_path = "images/furniture/single_bed.png"
 
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}  # TODO: common class for beds?
-    offsets_to_this = {"top": 0, "bottom": 50, "left": 20, "right": 20}
+    offsets_to_this = {"bottom": 50, "left": 20, "right": 20}
 
 
 class Dresser(Furniture):
@@ -27,7 +27,7 @@ class Dresser(Furniture):
     image_path = "images/furniture/dresser.png"
 
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True}}
-    offsets_to_this = {"top": 0, "bottom": 30, "left": 20, "right": 20}
+    offsets_to_this = {"bottom": 30, "left": 20, "right": 20}
 
 
 class Table(Furniture):
@@ -35,7 +35,7 @@ class Table(Furniture):
     image_path = "images/furniture/table.png"
 
     rules = {Wall: {"sides": ("midtop", "bottom", 150), "angle": 0, "required": True}}
-    offsets_to_this = {"top": 30, "bottom": 30, "left": 30, "right": 30}
+    offsets_to_this = {"top": 30, "bottom": 30, "left": 50, "right": 50}  # TODO: add all usual keywords as 'all'
 
 
 class Armchair(Furniture):
@@ -94,13 +94,12 @@ class KitchenChair(Furniture):
     image_path = "images/furniture/kitchen_chair.png"
 
     # TODO: angle - 'перпендикулярно' ГРАНИ стола (и потом добавить параллельно)
-    rules = {Table: {"sides": ("midbottom", "midany", "<20"), "angle": "center"}}
+    rules = {Table: {"sides": ("midbottom", "midany", 20), "angle": "center"}}
 
 
 class ComputerChair(Furniture):
     width, height, depth = 48, 52, 140
     image_path = "images/furniture/chair.png"
-    # TODO: MB refactor all desired dist as "><=" (all both are correct)
     rules = {ComputerTable: {"sides": ("midbottom", "midbottom", 10, "related"), "angle": 180}}
 
 
@@ -145,7 +144,7 @@ class Wardrobe(Furniture):
     image_path = "images/furniture/wardrobe.png"
 
     rules = {Wall: {"sides": ("midtop", "bottom", 0), "angle": 0, "required": True},
-             DoubleBed: {"sides": ("any", "any", ">70"), "angle": "perpendicular", "required": True}}
+             DoubleBed: {"sides": ("any", "any", ">70", "related"), "angle": "perpendicular", "required": True}}
     offsets_to_this = {"bottom": 40, "left": 20, "right": 20}
 
 
@@ -154,4 +153,4 @@ class CarpetBig(Furniture):
     image_path = "images/furniture/carpet_big.png"
 
     rules = {Sofa: {"sides": ("center", "midbottom", 60), "angle": 180},
-             DoubleBed: {"sides": ("midbottom", "midbottom", 30), "angle": 0}}
+             DoubleBed: {"sides": ("midbottom", "midbottom", "[10-40]"), "angle": 0}}

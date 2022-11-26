@@ -15,7 +15,7 @@ class Furniture(SpriteObject):
     #     super().update()
 
     def get_intersections(self, sprite):
-        if sprite != self and self.rect.colliderect(sprite.rect):
+        if self.rect.colliderect(sprite.rect):
             intersection = get_rotated_rect_intersections(self.get_rotated_rect(), sprite.get_rotated_rect())
             if intersection:  # if exists any intersection, check for depth intersection
                 return self.check_for_depth_intersection(sprite)
@@ -47,6 +47,7 @@ class Furniture(SpriteObject):
         return not intersection_info
 
     def solve_collisions(self, other_sprite):  # , draw_all, font, display_surface, all_sprites, clock):
+        # TODO: Тут пытался именно "решить" столновение, путем расстаскивания 2-ух объектов, после решил, что это не нужно и можно просто штрафить сильно
         intersection_info = self.get_intersections(other_sprite)
 
         if intersection_info:
@@ -153,16 +154,24 @@ class Furniture(SpriteObject):
         #         return 10000
 
     def solve_collisions_and_offsets(self):
+        # TODO: ТУТ УХОДИТ 25% скорости, в нашей конкретной задаче мб попробовать просчитать один раз всю зону, куда
+        #  предмету не стоит выходить, и проверять для каждого агента из ГА не в этой ли он зоне (а не счтить для
+        #  каждого с нуля как сейчас)
         for other_sprite in settings.ALL_OBJECTS:
             if other_sprite != self:
                 # Solve collisions
-                penalty = self.solve_collisions(other_sprite)
-                if penalty:
-                    # fit_sum += penalty
-                    return penalty
+                intersection = self.get_intersections(other_sprite)
+                if intersection:
+                    return settings.COLLISION_PENALTY
+
+                # OLD WAY
+                # penalty = self.solve_collisions(other_sprite)
+                # if penalty:
+                #     # fit_sum += penalty
+                #     return penalty
 
                 # Solve sprites offsets rules
-                # if (me_in_sprite or sprite_in_me) and depth_inter and (not me_in_rules and not rules_in_me)
+                # if (me_in_sprite_offset or sprite_in_my_offset) and depth_inter and (not me_in_rules and not rules_in_me)
                 if (get_rotated_rect_intersections(self.get_rotated_rect(), other_sprite.offset_rotated_rect) or
                     get_rotated_rect_intersections(other_sprite.get_rotated_rect(), self.offset_rotated_rect)) and \
                         self.check_for_depth_intersection(other_sprite) and \
@@ -181,7 +190,6 @@ class Furniture(SpriteObject):
         # If there are a few rules, add only the minimum one
         optional_rules_fitness = []
 
-        self.rect_rotated_rules = []  # delete all old 'rect_rotated_rules' for correct drawing in DEBUG mode
         for rule_obj in self.rules:
             # combine every instance by rule groups
             rule_group = []
